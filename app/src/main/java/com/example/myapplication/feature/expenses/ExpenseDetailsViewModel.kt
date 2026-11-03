@@ -10,6 +10,7 @@ data class ExpenseDetailsUiState(
     val expense: Expense? = null,
 )
 
+/** Scaffold ViewModel; feature logic is added when ExpenseDetailsScreen is implemented. */
 class ExpenseDetailsViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(ExpenseDetailsUiState())
     val uiState: StateFlow<ExpenseDetailsUiState> = _uiState.asStateFlow()

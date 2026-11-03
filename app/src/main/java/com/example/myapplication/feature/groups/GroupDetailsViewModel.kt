@@ -14,6 +14,7 @@ data class GroupDetailsUiState(
     val balanceText: String = "",
 )
 
+/** Scaffold ViewModel; feature logic is added when GroupDetailsScreen is implemented. */
 class GroupDetailsViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(GroupDetailsUiState())
     val uiState: StateFlow<GroupDetailsUiState> = _uiState.asStateFlow()

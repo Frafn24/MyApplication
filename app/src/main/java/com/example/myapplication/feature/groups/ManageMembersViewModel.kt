@@ -10,6 +10,7 @@ data class ManageMembersUiState(
     val members: List<GroupMember> = emptyList(),
 )
 
+/** Scaffold ViewModel; feature logic is added when ManageMembersScreen is implemented. */
 class ManageMembersViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(ManageMembersUiState())
     val uiState: StateFlow<ManageMembersUiState> = _uiState.asStateFlow()

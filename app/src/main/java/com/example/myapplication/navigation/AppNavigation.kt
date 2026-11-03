@@ -1,9 +1,9 @@
 package com.example.myapplication.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -30,7 +30,7 @@ fun AppNavigation(container: AppContainer) {
     ) {
         composable(Routes.Login) {
             val loginViewModel: LoginViewModel = viewModel(factory = factory)
-            val uiState by loginViewModel.uiState.collectAsState()
+            val uiState by loginViewModel.uiState.collectAsStateWithLifecycle()
             LoginScreen(
                 uiState = uiState,
                 onEmailChanged = loginViewModel::updateEmail,
@@ -47,7 +47,7 @@ fun AppNavigation(container: AppContainer) {
         }
         composable(Routes.SignUp) {
             val signUpViewModel: SignUpViewModel = viewModel(factory = factory)
-            val uiState by signUpViewModel.uiState.collectAsState()
+            val uiState by signUpViewModel.uiState.collectAsStateWithLifecycle()
             SignUpScreen(
                 uiState = uiState,
                 onNameChanged = signUpViewModel::updateName,
@@ -67,7 +67,7 @@ fun AppNavigation(container: AppContainer) {
         }
         composable(Routes.ForgotPassword) {
             val forgotPasswordViewModel: ForgotPasswordViewModel = viewModel(factory = factory)
-            val uiState by forgotPasswordViewModel.uiState.collectAsState()
+            val uiState by forgotPasswordViewModel.uiState.collectAsStateWithLifecycle()
             ForgotPasswordScreen(
                 uiState = uiState,
                 onEmailChanged = forgotPasswordViewModel::updateEmail,
@@ -78,7 +78,7 @@ fun AppNavigation(container: AppContainer) {
         }
         composable(Routes.Groups) {
             val groupsViewModel: GroupsViewModel = viewModel(factory = factory)
-            val uiState by groupsViewModel.uiState.collectAsState()
+            val uiState by groupsViewModel.uiState.collectAsStateWithLifecycle()
             GroupsScreen(
                 groups = uiState.groups,
                 onGroupClick = { /* TODO */ },

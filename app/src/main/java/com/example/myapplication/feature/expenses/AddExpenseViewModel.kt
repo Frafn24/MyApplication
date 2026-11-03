@@ -12,6 +12,7 @@ data class AddExpenseUiState(
     val selectedMembers: Set<String> = emptySet(),
 )
 
+/** Scaffold ViewModel; feature logic is added when AddExpenseScreen is implemented. */
 class AddExpenseViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(AddExpenseUiState())
     val uiState: StateFlow<AddExpenseUiState> = _uiState.asStateFlow()

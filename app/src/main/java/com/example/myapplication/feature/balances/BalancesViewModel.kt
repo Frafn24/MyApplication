@@ -10,6 +10,7 @@ data class BalancesUiState(
     val balances: List<Balance> = emptyList(),
 )
 
+/** Scaffold ViewModel; feature logic is added when BalancesScreen is implemented. */
 class BalancesViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(BalancesUiState())
     val uiState: StateFlow<BalancesUiState> = _uiState.asStateFlow()

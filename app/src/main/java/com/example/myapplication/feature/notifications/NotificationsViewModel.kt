@@ -10,6 +10,7 @@ data class NotificationsUiState(
     val notifications: List<AppNotification> = emptyList(),
 )
 
+/** Scaffold ViewModel; feature logic is added when NotificationsScreen is implemented. */
 class NotificationsViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(NotificationsUiState())
     val uiState: StateFlow<NotificationsUiState> = _uiState.asStateFlow()

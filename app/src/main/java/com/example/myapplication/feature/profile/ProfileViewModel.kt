@@ -10,6 +10,7 @@ data class ProfileUiState(
     val profile: User? = null,
 )
 
+/** Scaffold ViewModel; feature logic is added when ProfileScreen is implemented. */
 class ProfileViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()

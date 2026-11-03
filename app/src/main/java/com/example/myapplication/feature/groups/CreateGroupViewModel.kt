@@ -11,6 +11,7 @@ data class CreateGroupUiState(
     val memberNames: List<String> = emptyList(),
 )
 
+/** Scaffold ViewModel; feature logic is added when CreateGroupScreen is implemented. */
 class CreateGroupViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(CreateGroupUiState())
     val uiState: StateFlow<CreateGroupUiState> = _uiState.asStateFlow()
