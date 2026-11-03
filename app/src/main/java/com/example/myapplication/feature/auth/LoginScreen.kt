@@ -7,7 +7,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -21,13 +22,17 @@ import com.example.myapplication.ui.components.PrimaryButton
 
 @Composable
 fun LoginScreen(
+    uiState: LoginUiState,
+    onEmailChanged: (String) -> Unit,
+    onPasswordChanged: (String) -> Unit,
+    onLogin: () -> Unit,
     onSignIn: () -> Unit,
     onForgotPassword: () -> Unit,
     onSignUp: () -> Unit
 ) {
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-
+    LaunchedEffect(uiState.loginSuccessful) {
+        if (uiState.loginSuccessful) onSignIn()
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -42,12 +47,12 @@ fun LoginScreen(
         Spacer(Modifier.height(40.dp))
 
         AuthTextField(
-            "Email", email, { email = it }, "Enter email",
+            "Email", uiState.email, onEmailChanged, "Enter email",
             Icons.Default.Email, keyboardType = KeyboardType.Email
         )
         Spacer(Modifier.height(16.dp))
         AuthTextField(
-            "Password", password, { password = it }, "Enter password",
+            "Password", uiState.password, onPasswordChanged, "Enter password",
             Icons.Default.Lock, isPassword = true, keyboardType = KeyboardType.Password
         )
 
@@ -56,7 +61,9 @@ fun LoginScreen(
         }
         Spacer(Modifier.height(12.dp))
 
-        PrimaryButton("Sign in", onSignIn,)
+        PrimaryButton("Sign in", {
+            onLogin()
+        }, enabled = !uiState.isLoading)
 
         Spacer(Modifier.weight(1f))
 

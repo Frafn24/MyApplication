@@ -38,19 +38,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.myapplication.data.model.GroupSummary
 
 private val CardBackground = Color(0xFFDCE0E6)
 private val ButtonBackground = Color(0xFF4B5563)
 private val AvatarBackground = Color(0xFFE5E7EB)
 private val TextPrimary = Color(0xFF111827)
 private val TextSecondary = Color(0xFF374151)
-
-data class GroupSummary(
-    val id: String,
-    val name: String,
-    val memberCount: Int,
-    val balanceText: String,
-)
 
 private data class BottomTab(val label: String, val icon: ImageVector)
 

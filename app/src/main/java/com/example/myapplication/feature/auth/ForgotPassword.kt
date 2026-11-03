@@ -6,7 +6,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -19,9 +20,16 @@ import com.example.myapplication.ui.components.AuthTextField
 import com.example.myapplication.ui.components.PrimaryButton
 
 @Composable
-fun ForgotPasswordScreen(onBack: () -> Unit, onSendEmail: () -> Unit) {
-    var email by remember { mutableStateOf("") }
-
+fun ForgotPasswordScreen(
+    uiState: ForgotPasswordUiState,
+    onEmailChanged: (String) -> Unit,
+    onBack: () -> Unit,
+    onSendEmail: () -> Unit,
+    onEmailSent: () -> Unit,
+) {
+    LaunchedEffect(uiState.emailSent) {
+        if (uiState.emailSent) onEmailSent()
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -48,12 +56,12 @@ fun ForgotPasswordScreen(onBack: () -> Unit, onSendEmail: () -> Unit) {
             Spacer(Modifier.height(24.dp))
 
             AuthTextField(
-                "Enter Email", email, { email = it }, "Enter email",
+                "Enter Email", uiState.email, onEmailChanged, "Enter email",
                 Icons.Default.Email, keyboardType = KeyboardType.Email
             )
 
             Spacer(Modifier.height(32.dp))
-            PrimaryButton("Send Email", onSendEmail, enabled = email.contains("@"))
+            PrimaryButton("Send Email", onClick = onSendEmail, enabled = uiState.email.contains("@") && !uiState.isLoading)
         }
         Spacer(Modifier.height(96.dp))
     }
