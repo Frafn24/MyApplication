@@ -25,7 +25,7 @@ data class Expense(
     val id: String,
     val groupId: String,
     val title: String,
-    val amountDkk: Int,
+    val amountInCents: Long,
     val paidBy: String,
     val splitBetween: List<String>,
 )

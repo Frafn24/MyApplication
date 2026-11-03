@@ -1,5 +1,6 @@
 package com.example.myapplication.data.mock
 
+import com.example.myapplication.data.local.ExpenseEntity
 import com.example.myapplication.data.model.Expense
 import com.example.myapplication.data.model.GroupMember
 import com.example.myapplication.data.model.GroupSummary
@@ -10,6 +11,8 @@ import com.example.myapplication.data.repository.ExpenseRepository
 import com.example.myapplication.data.repository.GroupRepository
 import com.example.myapplication.data.repository.NotificationRepository
 import com.example.myapplication.data.repository.ProfileRepository
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 
 /** Temporary mock repositories used until a real data source is connected. */
 class MockAuthRepository : AuthRepository {
@@ -71,6 +74,21 @@ class MockExpenseRepository : ExpenseRepository {
         if (index >= 0) expenses[index] = expense
         return Result.success(expense)
     }
+
+    override fun observeExpenses(groupId: String): Flow<List<ExpenseEntity>> = flowOf(emptyList())
+
+    override suspend fun addExpense(
+        groupId: String,
+        description: String,
+        amountInCents: Long,
+        payerId: String,
+    ): Result<Expense> = addExpense(
+        Expense("expense-${System.currentTimeMillis()}", groupId, description, amountInCents, payerId, listOf(payerId)),
+    )
+
+    override suspend fun retryExpense(expenseId: String): Result<Unit> = Result.success(Unit)
+
+    override suspend fun getPendingExpenses(): List<ExpenseEntity> = emptyList()
 }
 
 class MockBalanceRepository : BalanceRepository {

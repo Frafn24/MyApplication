@@ -20,9 +20,9 @@ object MockData {
     )
 
     val expenses = listOf(
-        Expense("1", "1", "Dinner", 600, "Alex", listOf("You", "Alex", "Sarah", "John")),
-        Expense("2", "1", "Gas", 300, "You", listOf("You", "Alex", "Sarah", "John")),
-        Expense("3", "1", "Groceries", 180, "Sarah", listOf("You", "Alex", "Sarah", "John")),
+        Expense("1", "1", "Dinner", 60000, "Alex", listOf("You", "Alex", "Sarah", "John")),
+        Expense("2", "1", "Gas", 30000, "You", listOf("You", "Alex", "Sarah", "John")),
+        Expense("3", "1", "Groceries", 18000, "Sarah", listOf("You", "Alex", "Sarah", "John")),
     )
 
     val balances = listOf(
