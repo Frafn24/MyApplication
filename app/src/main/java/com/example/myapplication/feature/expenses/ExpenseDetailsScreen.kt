@@ -32,18 +32,10 @@ import java.math.BigDecimal
 import java.math.RoundingMode
 
 // Represents one member's share of an expense
-data class ExpenseSplit(
-    val memberName: String,
-    val amount: BigDecimal
-)
+data class ExpenseSplit(val memberName: String, val amount: BigDecimal)
 
 // Data displayed on the Expense Details screen
-data class ExpenseDetails(
-    val title: String,
-    val amount: BigDecimal,
-    val paidBy: String,
-    val splits: List<ExpenseSplit>
-)
+data class ExpenseDetails(val title: String, val amount: BigDecimal, val paidBy: String, val splits: List<ExpenseSplit>)
 
 @Composable
 fun ExpenseDetailsScreen(
@@ -187,9 +179,7 @@ fun ExpenseDetailsScreen(
 }
 
 // Format amounts with two decimal places
-private fun BigDecimal.formatDKK(): String {
-    return setScale(2, RoundingMode.HALF_UP).toPlainString()
-}
+private fun BigDecimal.formatDKK(): String = setScale(2, RoundingMode.HALF_UP).toPlainString()
 
 // Android Studio preview with example data
 @Preview(

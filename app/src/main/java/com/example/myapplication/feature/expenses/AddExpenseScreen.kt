@@ -11,8 +11,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -43,12 +43,7 @@ import com.example.myapplication.ui.theme.MyApplicationTheme
 import java.math.BigDecimal
 import java.math.RoundingMode
 
-data class ExpenseDraft(
-    val title: String,
-    val amount: BigDecimal,
-    val paidBy: String,
-    val splitBetween: List<String>
-)
+data class ExpenseDraft(val title: String, val amount: BigDecimal, val paidBy: String, val splitBetween: List<String>)
 
 @Composable
 fun AddExpenseScreen(
@@ -153,7 +148,8 @@ fun AddExpenseScreen(
                 onValueChange = { input ->
                     if (input.all {
                             it.isDigit() || it == '.' || it == ','
-                        }) {
+                        }
+                    ) {
                         amountText = input
                     }
                 },
