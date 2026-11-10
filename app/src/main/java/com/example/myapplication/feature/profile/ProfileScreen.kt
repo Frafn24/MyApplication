@@ -38,6 +38,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.myapplication.ui.components.StatusMessage
 
 private val TextPrimary = Color(0xFF111827)
 private val AvatarBackground = Color(0xFFE5E7EB)
@@ -47,7 +48,12 @@ private val ButtonBackground = Color(0xFFDCE0E6)
 data class UserProfile(val name: String, val email: String, val phone: String, val notificationsEnabled: Boolean)
 
 @Composable
-fun ProfileScreen(profile: UserProfile, onSaveChanges: (UserProfile) -> Unit, modifier: Modifier = Modifier) {
+fun ProfileScreen(
+    profile: UserProfile,
+    onSaveChanges: (UserProfile) -> Unit,
+    modifier: Modifier = Modifier,
+    message: String? = null
+) {
     var name by remember { mutableStateOf(profile.name) }
     var email by remember { mutableStateOf(profile.email) }
     var phone by remember { mutableStateOf(profile.phone) }
@@ -115,6 +121,7 @@ fun ProfileScreen(profile: UserProfile, onSaveChanges: (UserProfile) -> Unit, mo
             )
         }
 
+        message?.let { StatusMessage(it) }
         Spacer(Modifier.height(40.dp))
 
         Button(

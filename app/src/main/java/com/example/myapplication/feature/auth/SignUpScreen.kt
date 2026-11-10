@@ -32,9 +32,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.myapplication.ui.components.AuthTextField
 import com.example.myapplication.ui.components.PrimaryButton
+import com.example.myapplication.ui.components.StatusMessage
 
 @Composable
-fun SignUpScreen(onSignUp: () -> Unit, onSignIn: () -> Unit) {
+fun SignUpScreen(
+    onSignUp: (name: String, email: String, password: String) -> Unit,
+    onSignIn: () -> Unit,
+    isLoading: Boolean = false,
+    message: String? = null
+) {
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -91,8 +97,9 @@ fun SignUpScreen(onSignUp: () -> Unit, onSignIn: () -> Unit) {
         CheckRow("I accept terms and conditions*", acceptTerms) { acceptTerms = it }
         CheckRow("I accept to get newsletters and offers", acceptNews) { acceptNews = it }
 
+        message?.let { StatusMessage(it) }
         Spacer(Modifier.height(20.dp))
-        PrimaryButton("Sign Up", onSignUp, enabled = canSubmit)
+        PrimaryButton("Sign Up", { onSignUp(name, email, password) }, enabled = canSubmit && !isLoading)
 
         Spacer(Modifier.height(32.dp))
         Row(modifier = Modifier.padding(bottom = 32.dp)) {

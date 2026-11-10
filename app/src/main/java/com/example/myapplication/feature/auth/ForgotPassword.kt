@@ -29,9 +29,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.myapplication.ui.components.AuthTextField
 import com.example.myapplication.ui.components.PrimaryButton
+import com.example.myapplication.ui.components.StatusMessage
 
 @Composable
-fun ForgotPasswordScreen(onBack: () -> Unit, onSendEmail: () -> Unit) {
+fun ForgotPasswordScreen(
+    onBack: () -> Unit,
+    onSendEmail: (email: String) -> Unit,
+    isLoading: Boolean = false,
+    message: String? = null
+) {
     var email by remember { mutableStateOf("") }
 
     Column(
@@ -69,7 +75,12 @@ fun ForgotPasswordScreen(onBack: () -> Unit, onSendEmail: () -> Unit) {
             )
 
             Spacer(Modifier.height(32.dp))
-            PrimaryButton("Send Email", onSendEmail, enabled = AuthValidation.isValidEmail(email))
+            message?.let { StatusMessage(it) }
+            PrimaryButton(
+                "Send Email",
+                { onSendEmail(email) },
+                enabled = AuthValidation.isValidEmail(email) && !isLoading
+            )
         }
         Spacer(Modifier.height(96.dp))
     }

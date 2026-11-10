@@ -27,9 +27,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.myapplication.ui.components.AuthTextField
 import com.example.myapplication.ui.components.PrimaryButton
+import com.example.myapplication.ui.components.StatusMessage
 
 @Composable
-fun LoginScreen(onSignIn: () -> Unit, onForgotPassword: () -> Unit, onSignUp: () -> Unit) {
+fun LoginScreen(
+    onSignIn: (email: String, password: String) -> Unit,
+    onForgotPassword: () -> Unit,
+    onSignUp: () -> Unit,
+    isLoading: Boolean = false,
+    message: String? = null
+) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
@@ -68,9 +75,10 @@ fun LoginScreen(onSignIn: () -> Unit, onForgotPassword: () -> Unit, onSignUp: ()
         TextButton(onClick = onForgotPassword, modifier = Modifier.align(Alignment.End)) {
             Text("Forgot password?", fontSize = 12.sp, color = Color.Black)
         }
+        message?.let { StatusMessage(it) }
         Spacer(Modifier.height(12.dp))
 
-        PrimaryButton("Sign in", onSignIn)
+        PrimaryButton("Sign in", { onSignIn(email, password) }, enabled = !isLoading)
 
         Spacer(Modifier.weight(1f))
 

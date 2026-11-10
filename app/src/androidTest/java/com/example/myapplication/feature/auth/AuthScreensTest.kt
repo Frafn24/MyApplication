@@ -21,7 +21,7 @@ class AuthScreensTest {
     fun loginScreenNavigatesToSignUp() {
         var signUpClicked = false
         composeRule.setContent {
-            LoginScreen(onSignIn = {}, onForgotPassword = {}, onSignUp = { signUpClicked = true })
+            LoginScreen(onSignIn = { _, _ -> }, onForgotPassword = {}, onSignUp = { signUpClicked = true })
         }
 
         composeRule.onNodeWithText("Sign up").performClick()
