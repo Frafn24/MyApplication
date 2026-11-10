@@ -17,6 +17,7 @@ import com.example.myapplication.feature.notifications.NotificationItem
 import com.example.myapplication.feature.notifications.NotificationsScreen
 import com.example.myapplication.feature.profile.ProfileScreen
 import com.example.myapplication.feature.profile.UserProfile
+import com.example.myapplication.feature.splash.SplashScreen
 // behold dine eksisterende imports til LoginScreen, SignUpScreen og ForgotPasswordScreen
 
 @Composable
@@ -25,8 +26,17 @@ fun AppNavigation() {
 
     NavHost(
         navController = navController,
-        startDestination = Routes.Login
+        startDestination = Routes.Splash
     ) {
+        composable(Routes.Splash) {
+            SplashScreen(
+                onFinished = {
+                    navController.navigate(Routes.Login) {
+                        popUpTo(Routes.Splash) { inclusive = true }
+                    }
+                }
+            )
+        }
         composable(Routes.Login) {
             LoginScreen(
                 onSignIn = {
