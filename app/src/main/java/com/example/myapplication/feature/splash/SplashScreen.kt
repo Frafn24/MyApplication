@@ -24,6 +24,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.myapplication.R
+import com.example.myapplication.data.remote.runCatchingCancellable
 import kotlinx.coroutines.delay
 
 private val LogoBackground = Color(0xFFDCE0E6)
@@ -31,17 +32,23 @@ private val TextPrimary = Color(0xFF111827)
 private val IndicatorTrack = Color(0xFFE5E7EB)
 
 /**
- * Vises når appen starter. Kalder [onFinished] efter [durationMillis],
- * så navigationen kan gå videre (fx til login).
+ * Vises når appen starter. Tjekker med [checkSignedIn] om brugeren er logget ind
+ * og kalder [onFinished] med svaret, tidligst efter [durationMillis].
  */
 @Composable
-fun SplashScreen(onFinished: () -> Unit, modifier: Modifier = Modifier, durationMillis: Long = 1500) {
+fun SplashScreen(
+    checkSignedIn: suspend () -> Boolean,
+    onFinished: (isSignedIn: Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    durationMillis: Long = 1500
+) {
     val currentOnFinished by rememberUpdatedState(onFinished)
 
     LaunchedEffect(Unit) {
-        // TODO: erstat med rigtig opstartslogik (fx tjek om brugeren er logget ind)
-        delay(durationMillis)
-        currentOnFinished()
+        val start = System.currentTimeMillis()
+        val isSignedIn = runCatchingCancellable { checkSignedIn() }.getOrDefault(false)
+        delay(durationMillis - (System.currentTimeMillis() - start))
+        currentOnFinished(isSignedIn)
     }
 
     LoadingContent(modifier = modifier)

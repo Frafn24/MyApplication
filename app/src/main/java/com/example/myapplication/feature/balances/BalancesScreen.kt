@@ -29,6 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.myapplication.ui.components.StatusMessage
 
 private val CardBackground = Color(0xFFDCE0E6)
 private val AvatarBackground = Color(0xFFE5E7EB)
@@ -48,7 +49,8 @@ fun BalancesScreen(
     onRemind: (BalanceEntry) -> Unit,
     onEntryClick: (BalanceEntry) -> Unit,
     onProfileClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    message: String? = null
 ) {
     Column(
         modifier = modifier
@@ -97,6 +99,8 @@ fun BalancesScreen(
         )
 
         Spacer(Modifier.height(36.dp))
+
+        message?.let { StatusMessage(it) }
 
         groups.forEach { group ->
             Text(

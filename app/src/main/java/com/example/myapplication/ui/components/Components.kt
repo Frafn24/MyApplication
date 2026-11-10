@@ -1,6 +1,7 @@
 package com.example.myapplication.ui.components
 
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
@@ -11,6 +12,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 @Composable
 fun AuthTextField(
@@ -44,4 +48,15 @@ fun PrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifi
     ) {
         Text(text)
     }
+}
+
+/** A short error or info text, e.g. when data could not be loaded from the database. */
+@Composable
+fun StatusMessage(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text = text,
+        modifier = modifier.fillMaxWidth().padding(vertical = 8.dp),
+        fontSize = 12.sp,
+        textAlign = TextAlign.Center
+    )
 }

@@ -38,6 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.myapplication.ui.components.StatusMessage
 
 private val CardBackground = Color(0xFFDCE0E6)
 private val ButtonBackground = Color(0xFF4B5563)
@@ -57,7 +58,8 @@ fun GroupsScreen(
     modifier: Modifier = Modifier,
     onProfileClick: () -> Unit = {},
     onBalancesClick: () -> Unit = {},
-    onAlertsClick: () -> Unit = {}
+    onAlertsClick: () -> Unit = {},
+    message: String? = null
 ) {
     val tabs = listOf(
         BottomTab("Groups", Icons.Default.Person),
@@ -122,6 +124,8 @@ fun GroupsScreen(
             }
 
             Spacer(Modifier.height(20.dp))
+
+            message?.let { StatusMessage(it) }
 
             groups.forEach { group ->
                 GroupCard(group = group, onClick = { onGroupClick(group) })
