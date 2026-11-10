@@ -54,7 +54,10 @@ fun GroupsScreen(
     groups: List<GroupSummary>,
     onGroupClick: (GroupSummary) -> Unit,
     onCreateGroup: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onProfileClick: () -> Unit = {},
+    onBalancesClick: () -> Unit = {},
+    onAlertsClick: () -> Unit = {}
 ) {
     val tabs = listOf(
         BottomTab("Groups", Icons.Default.Person),
@@ -70,7 +73,12 @@ fun GroupsScreen(
                 tabs.forEachIndexed { index, tab ->
                     NavigationBarItem(
                         selected = index == 0,
-                        onClick = { /* TODO: navigation */ },
+                        onClick = {
+                            when (index) {
+                                1 -> onBalancesClick()
+                                2 -> onAlertsClick()
+                            }
+                        },
                         icon = { Icon(tab.icon, contentDescription = tab.label) },
                         label = { Text(tab.label, fontSize = 10.sp) },
                         colors = NavigationBarItemDefaults.colors(
@@ -109,6 +117,7 @@ fun GroupsScreen(
                         .size(36.dp)
                         .clip(CircleShape)
                         .background(AvatarBackground)
+                        .clickable(onClick = onProfileClick)
                 )
             }
 
