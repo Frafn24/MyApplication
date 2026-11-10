@@ -17,6 +17,7 @@ import com.example.myapplication.feature.notifications.NotificationItem
 import com.example.myapplication.feature.notifications.NotificationsScreen
 import com.example.myapplication.feature.profile.ProfileScreen
 import com.example.myapplication.feature.profile.UserProfile
+import com.example.myapplication.feature.splash.SplashScreen
 // behold dine eksisterende imports til LoginScreen, SignUpScreen og ForgotPasswordScreen
 
 @Composable
@@ -25,36 +26,45 @@ fun AppNavigation() {
 
     NavHost(
         navController = navController,
-        startDestination = Routes.LOGIN
+        startDestination = Routes.Splash
     ) {
-        composable(Routes.LOGIN) {
-            LoginScreen(
-                onSignIn = {
-                    navController.navigate(Routes.GROUPS) {
-                        popUpTo(Routes.LOGIN) { inclusive = true }
+        composable(Routes.Splash) {
+            SplashScreen(
+                onFinished = {
+                    navController.navigate(Routes.Login) {
+                        popUpTo(Routes.Splash) { inclusive = true }
                     }
-                },
-                onForgotPassword = { navController.navigate(Routes.FORGOT_PASSWORD) },
-                onSignUp = { navController.navigate(Routes.SIGN_UP) }
+                }
             )
         }
-        composable(Routes.SIGN_UP) {
+        composable(Routes.Login) {
+            LoginScreen(
+                onSignIn = {
+                    navController.navigate(Routes.Groups) {
+                        popUpTo(Routes.Login) { inclusive = true }
+                    }
+                },
+                onForgotPassword = { navController.navigate(Routes.ForgotPassword) },
+                onSignUp = { navController.navigate(Routes.SignUp) }
+            )
+        }
+        composable(Routes.SignUp) {
             SignUpScreen(
                 onSignUp = {
-                    navController.navigate(Routes.GROUPS) {
-                        popUpTo(Routes.LOGIN) { inclusive = true }
+                    navController.navigate(Routes.Groups) {
+                        popUpTo(Routes.Login) { inclusive = true }
                     }
                 },
                 onSignIn = { navController.popBackStack() }
             )
         }
-        composable(Routes.FORGOT_PASSWORD) {
+        composable(Routes.ForgotPassword) {
             ForgotPasswordScreen(
                 onBack = { navController.popBackStack() },
                 onSendEmail = { navController.popBackStack() }
             )
         }
-        composable(Routes.GROUPS) {
+        composable(Routes.Groups) {
             GroupsScreen(
                 groups = listOf(
                     GroupSummary("1", "Summer Trip", 4, "You are owed 250 DKK"),
@@ -62,12 +72,12 @@ fun AppNavigation() {
                 ),
                 onGroupClick = { /* TODO */ },
                 onCreateGroup = { /* TODO */ },
-                onProfileClick = { navController.navigate(Routes.PROFILE) },
-                onBalancesClick = { navController.navigate(Routes.BALANCES) },
-                onAlertsClick = { navController.navigate(Routes.NOTIFICATIONS) }
+                onProfileClick = { navController.navigate(Routes.Profile) },
+                onBalancesClick = { navController.navigate(Routes.Balances) },
+                onAlertsClick = { navController.navigate(Routes.Notifications) }
             )
         }
-        composable(Routes.NOTIFICATIONS) {
+        composable(Routes.Notifications) {
             NotificationsScreen(
                 notifications = listOf(
                     NotificationItem("1", "New Expense", "Alex added Dinner - 600 DKK", "10 min ago"),
@@ -75,10 +85,10 @@ fun AppNavigation() {
                     NotificationItem("3", "Group Updated", "Sarah Joined Summer Trip", "2 days ago")
                 ),
                 onNotificationClick = { /* TODO: åbn notifikation */ },
-                onProfileClick = { navController.navigate(Routes.PROFILE) }
+                onProfileClick = { navController.navigate(Routes.Profile) }
             )
         }
-        composable(Routes.BALANCES) {
+        composable(Routes.Balances) {
             BalancesScreen(
                 totalBalanceText = "+ 150 DKK",
                 groups = listOf(
@@ -96,10 +106,10 @@ fun AppNavigation() {
                 ),
                 onRemind = { /* TODO: send påmindelse */ },
                 onEntryClick = { /* TODO: åbn detaljer */ },
-                onProfileClick = { navController.navigate(Routes.PROFILE) }
+                onProfileClick = { navController.navigate(Routes.Profile) }
             )
         }
-        composable(Routes.PROFILE) {
+        composable(Routes.Profile) {
             ProfileScreen(
                 profile = UserProfile(
                     name = "John Doe",
