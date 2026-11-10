@@ -37,17 +37,9 @@ private val TextSecondary = Color(0xFF374151)
 
 enum class BalanceDirection { OwedToYou, YouOwe }
 
-data class BalanceEntry(
-    val id: String,
-    val personName: String,
-    val amountText: String,
-    val direction: BalanceDirection,
-)
+data class BalanceEntry(val id: String, val personName: String, val amountText: String, val direction: BalanceDirection)
 
-data class GroupBalances(
-    val groupName: String,
-    val entries: List<BalanceEntry>,
-)
+data class GroupBalances(val groupName: String, val entries: List<BalanceEntry>)
 
 @Composable
 fun BalancesScreen(
@@ -56,34 +48,34 @@ fun BalancesScreen(
     onRemind: (BalanceEntry) -> Unit,
     onEntryClick: (BalanceEntry) -> Unit,
     onProfileClick: () -> Unit,
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier
 ) {
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(Color.White)
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = 16.dp)
     ) {
         Spacer(Modifier.height(16.dp))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = "Balances",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary,
+                color = TextPrimary
             )
             Box(
                 modifier = Modifier
                     .size(32.dp)
                     .clip(CircleShape)
                     .background(AvatarBackground)
-                    .clickable(onClick = onProfileClick),
+                    .clickable(onClick = onProfileClick)
             )
         }
 
@@ -93,7 +85,7 @@ fun BalancesScreen(
             text = "Your balance",
             fontSize = 12.sp,
             color = TextPrimary,
-            modifier = Modifier.align(Alignment.CenterHorizontally),
+            modifier = Modifier.align(Alignment.CenterHorizontally)
         )
         Spacer(Modifier.height(10.dp))
         Text(
@@ -101,7 +93,7 @@ fun BalancesScreen(
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
             color = TextPrimary,
-            modifier = Modifier.align(Alignment.CenterHorizontally),
+            modifier = Modifier.align(Alignment.CenterHorizontally)
         )
 
         Spacer(Modifier.height(36.dp))
@@ -111,14 +103,14 @@ fun BalancesScreen(
                 text = group.groupName,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary,
+                color = TextPrimary
             )
             Spacer(Modifier.height(16.dp))
             group.entries.forEach { entry ->
                 BalanceCard(
                     entry = entry,
                     onRemind = { onRemind(entry) },
-                    onClick = { onEntryClick(entry) },
+                    onClick = { onEntryClick(entry) }
                 )
                 Spacer(Modifier.height(12.dp))
             }
@@ -130,11 +122,7 @@ fun BalancesScreen(
 }
 
 @Composable
-private fun BalanceCard(
-    entry: BalanceEntry,
-    onRemind: () -> Unit,
-    onClick: () -> Unit,
-) {
+private fun BalanceCard(entry: BalanceEntry, onRemind: () -> Unit, onClick: () -> Unit) {
     val title = when (entry.direction) {
         BalanceDirection.OwedToYou -> "${entry.personName} owes you"
         BalanceDirection.YouOwe -> "You owe ${entry.personName}"
@@ -147,20 +135,20 @@ private fun BalanceCard(
             .background(CardBackground)
             .clickable(onClick = onClick)
             .padding(horizontal = 6.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary,
+                color = TextPrimary
             )
             Spacer(Modifier.height(8.dp))
             Text(
                 text = entry.amountText,
                 fontSize = 8.sp,
-                color = TextSecondary,
+                color = TextSecondary
             )
         }
         when (entry.direction) {
@@ -171,12 +159,12 @@ private fun BalanceCard(
                 modifier = Modifier
                     .clip(RoundedCornerShape(2.dp))
                     .clickable(onClick = onRemind)
-                    .padding(4.dp),
+                    .padding(4.dp)
             )
             BalanceDirection.YouOwe -> Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,
-                tint = TextPrimary,
+                tint = TextPrimary
             )
         }
     }
@@ -192,16 +180,16 @@ private fun BalancesScreenPreview() {
                 "Summer Trip",
                 listOf(
                     BalanceEntry("1", "Alex", "100 DKK", BalanceDirection.OwedToYou),
-                    BalanceEntry("2", "Sarah", "150 DKK", BalanceDirection.OwedToYou),
-                ),
+                    BalanceEntry("2", "Sarah", "150 DKK", BalanceDirection.OwedToYou)
+                )
             ),
             GroupBalances(
                 "Roommates",
-                listOf(BalanceEntry("3", "John", "100 DKK", BalanceDirection.YouOwe)),
-            ),
+                listOf(BalanceEntry("3", "John", "100 DKK", BalanceDirection.YouOwe))
+            )
         ),
         onRemind = {},
         onEntryClick = {},
-        onProfileClick = {},
+        onProfileClick = {}
     )
 }

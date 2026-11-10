@@ -35,11 +35,7 @@ private val IndicatorTrack = Color(0xFFE5E7EB)
  * så navigationen kan gå videre (fx til login).
  */
 @Composable
-fun SplashScreen(
-    onFinished: () -> Unit,
-    modifier: Modifier = Modifier,
-    durationMillis: Long = 1500,
-) {
+fun SplashScreen(onFinished: () -> Unit, modifier: Modifier = Modifier, durationMillis: Long = 1500) {
     val currentOnFinished by rememberUpdatedState(onFinished)
 
     LaunchedEffect(Unit) {
@@ -57,28 +53,28 @@ private fun LoadingContent(modifier: Modifier = Modifier) {
         modifier = modifier
             .fillMaxSize()
             .background(Color.White),
-        contentAlignment = Alignment.Center,
+        contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Box(
                 modifier = Modifier
                     .size(80.dp)
                     .clip(CircleShape)
-                    .background(LogoBackground),
+                    .background(LogoBackground)
             )
             Spacer(Modifier.height(20.dp))
             Text(
                 text = stringResource(R.string.app_name),
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary,
+                color = TextPrimary
             )
             Spacer(Modifier.height(40.dp))
             CircularProgressIndicator(
                 modifier = Modifier.size(28.dp),
                 color = TextPrimary,
                 trackColor = IndicatorTrack,
-                strokeWidth = 3.dp,
+                strokeWidth = 3.dp
             )
         }
     }

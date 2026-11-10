@@ -32,46 +32,41 @@ private val AvatarBackground = Color(0xFFE5E7EB)
 private val TextPrimary = Color(0xFF111827)
 private val TextSecondary = Color(0xFF374151)
 
-data class NotificationItem(
-    val id: String,
-    val title: String,
-    val message: String,
-    val timeText: String,
-)
+data class NotificationItem(val id: String, val title: String, val message: String, val timeText: String)
 
 @Composable
 fun NotificationsScreen(
     notifications: List<NotificationItem>,
     onNotificationClick: (NotificationItem) -> Unit,
     onProfileClick: () -> Unit,
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier
 ) {
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(Color.White)
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = 16.dp)
     ) {
         Spacer(Modifier.height(16.dp))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = "Notifications",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary,
+                color = TextPrimary
             )
             Box(
                 modifier = Modifier
                     .size(32.dp)
                     .clip(CircleShape)
                     .background(AvatarBackground)
-                    .clickable(onClick = onProfileClick),
+                    .clickable(onClick = onProfileClick)
             )
         }
 
@@ -80,7 +75,7 @@ fun NotificationsScreen(
         notifications.forEach { notification ->
             NotificationCard(
                 notification = notification,
-                onClick = { onNotificationClick(notification) },
+                onClick = { onNotificationClick(notification) }
             )
             Spacer(Modifier.height(16.dp))
         }
@@ -88,35 +83,32 @@ fun NotificationsScreen(
 }
 
 @Composable
-private fun NotificationCard(
-    notification: NotificationItem,
-    onClick: () -> Unit,
-) {
+private fun NotificationCard(notification: NotificationItem, onClick: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(2.dp))
             .background(CardBackground)
             .clickable(onClick = onClick)
-            .padding(horizontal = 6.dp, vertical = 8.dp),
+            .padding(horizontal = 6.dp, vertical = 8.dp)
     ) {
         Text(
             text = notification.title,
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
-            color = TextPrimary,
+            color = TextPrimary
         )
         Spacer(Modifier.height(6.dp))
         Text(
             text = notification.message,
             fontSize = 10.sp,
-            color = TextPrimary,
+            color = TextPrimary
         )
         Spacer(Modifier.height(6.dp))
         Text(
             text = notification.timeText,
             fontSize = 7.sp,
-            color = TextSecondary,
+            color = TextSecondary
         )
     }
 }
@@ -128,9 +120,9 @@ private fun NotificationsScreenPreview() {
         notifications = listOf(
             NotificationItem("1", "New Expense", "Alex added Dinner - 600 DKK", "10 min ago"),
             NotificationItem("2", "Payment Reminder", "You owe John 100 DKK", "Yesterday"),
-            NotificationItem("3", "Group Updated", "Sarah Joined Summer Trip", "2 days ago"),
+            NotificationItem("3", "Group Updated", "Sarah Joined Summer Trip", "2 days ago")
         ),
         onNotificationClick = {},
-        onProfileClick = {},
+        onProfileClick = {}
     )
 }

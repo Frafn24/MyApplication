@@ -1,5 +1,7 @@
 package com.example.myapplication.navigation
 
+// Route names use PascalCase (Routes.Login) by team convention.
+@Suppress("ktlint:standard:property-naming")
 object Routes {
     const val Splash = "splash"
     const val Login = "login"

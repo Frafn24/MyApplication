@@ -68,7 +68,7 @@ fun AppNavigation() {
             GroupsScreen(
                 groups = listOf(
                     GroupSummary("1", "Summer Trip", 4, "You are owed 250 DKK"),
-                    GroupSummary("2", "Roommates", 3, "You owe 100 DKK"),
+                    GroupSummary("2", "Roommates", 3, "You owe 100 DKK")
                 ),
                 onGroupClick = { /* TODO */ },
                 onCreateGroup = { /* TODO */ },
@@ -82,9 +82,9 @@ fun AppNavigation() {
                 notifications = listOf(
                     NotificationItem("1", "New Expense", "Alex added Dinner - 600 DKK", "10 min ago"),
                     NotificationItem("2", "Payment Reminder", "You owe John 100 DKK", "Yesterday"),
-                    NotificationItem("3", "Group Updated", "Sarah Joined Summer Trip", "2 days ago"),
+                    NotificationItem("3", "Group Updated", "Sarah Joined Summer Trip", "2 days ago")
                 ),
-                onNotificationClick = { /* TODO: åbn notifikation */ },
+                onNotificationClick = { /* TODO: Ã¥bn notifikation */ },
                 onProfileClick = { navController.navigate(Routes.Profile) }
             )
         }
@@ -96,16 +96,16 @@ fun AppNavigation() {
                         "Summer Trip",
                         listOf(
                             BalanceEntry("1", "Alex", "100 DKK", BalanceDirection.OwedToYou),
-                            BalanceEntry("2", "Sarah", "150 DKK", BalanceDirection.OwedToYou),
-                        ),
+                            BalanceEntry("2", "Sarah", "150 DKK", BalanceDirection.OwedToYou)
+                        )
                     ),
                     GroupBalances(
                         "Roommates",
-                        listOf(BalanceEntry("3", "John", "100 DKK", BalanceDirection.YouOwe)),
-                    ),
+                        listOf(BalanceEntry("3", "John", "100 DKK", BalanceDirection.YouOwe))
+                    )
                 ),
-                onRemind = { /* TODO: send påmindelse */ },
-                onEntryClick = { /* TODO: åbn detaljer */ },
+                onRemind = { /* TODO: send pÃ¥mindelse */ },
+                onEntryClick = { /* TODO: Ã¥bn detaljer */ },
                 onProfileClick = { navController.navigate(Routes.Profile) }
             )
         }
@@ -115,9 +115,12 @@ fun AppNavigation() {
                     name = "John Doe",
                     email = "johndoe@test.com",
                     phone = "+45 12 34 56 78",
-                    notificationsEnabled = false,
+                    notificationsEnabled = false
                 ),
-                onSaveChanges = { /* TODO: gem profil */ navController.popBackStack() }
+                onSaveChanges = {
+                    /* TODO: gem profil */
+                    navController.popBackStack()
+                }
             )
         }
     }

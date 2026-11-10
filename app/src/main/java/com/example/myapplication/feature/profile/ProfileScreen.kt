@@ -44,19 +44,10 @@ private val AvatarBackground = Color(0xFFE5E7EB)
 private val FieldBorder = Color(0xFFD1D5DB)
 private val ButtonBackground = Color(0xFFDCE0E6)
 
-data class UserProfile(
-    val name: String,
-    val email: String,
-    val phone: String,
-    val notificationsEnabled: Boolean,
-)
+data class UserProfile(val name: String, val email: String, val phone: String, val notificationsEnabled: Boolean)
 
 @Composable
-fun ProfileScreen(
-    profile: UserProfile,
-    onSaveChanges: (UserProfile) -> Unit,
-    modifier: Modifier = Modifier,
-) {
+fun ProfileScreen(profile: UserProfile, onSaveChanges: (UserProfile) -> Unit, modifier: Modifier = Modifier) {
     var name by remember { mutableStateOf(profile.name) }
     var email by remember { mutableStateOf(profile.email) }
     var phone by remember { mutableStateOf(profile.phone) }
@@ -67,14 +58,14 @@ fun ProfileScreen(
             .fillMaxSize()
             .background(Color.White)
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = 16.dp)
     ) {
         Spacer(Modifier.height(16.dp))
         Text(
             text = "Profile",
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
-            color = TextPrimary,
+            color = TextPrimary
         )
 
         Spacer(Modifier.height(40.dp))
@@ -84,7 +75,7 @@ fun ProfileScreen(
                 .size(32.dp)
                 .clip(CircleShape)
                 .background(AvatarBackground)
-                .align(Alignment.CenterHorizontally),
+                .align(Alignment.CenterHorizontally)
         )
         Spacer(Modifier.height(12.dp))
         Text(
@@ -92,7 +83,7 @@ fun ProfileScreen(
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
             color = TextPrimary,
-            modifier = Modifier.align(Alignment.CenterHorizontally),
+            modifier = Modifier.align(Alignment.CenterHorizontally)
         )
 
         Spacer(Modifier.height(20.dp))
@@ -104,13 +95,13 @@ fun ProfileScreen(
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = "Enable Notifications",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary,
+                color = TextPrimary
             )
             Switch(
                 checked = notificationsEnabled,
@@ -119,8 +110,8 @@ fun ProfileScreen(
                     checkedTrackColor = TextPrimary,
                     uncheckedBorderColor = TextPrimary,
                     uncheckedThumbColor = TextPrimary,
-                    uncheckedTrackColor = Color.White,
-                ),
+                    uncheckedTrackColor = Color.White
+                )
             )
         }
 
@@ -136,8 +127,8 @@ fun ProfileScreen(
             shape = RoundedCornerShape(2.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = ButtonBackground,
-                contentColor = TextPrimary,
-            ),
+                contentColor = TextPrimary
+            )
         ) {
             Text("Save Changes", fontSize = 14.sp, fontWeight = FontWeight.Bold)
         }
@@ -151,13 +142,13 @@ private fun ProfileField(
     label: String,
     value: String,
     onValueChange: (String) -> Unit,
-    keyboardType: KeyboardType = KeyboardType.Text,
+    keyboardType: KeyboardType = KeyboardType.Text
 ) {
     Text(
         text = label,
         fontSize = 14.sp,
         fontWeight = FontWeight.Bold,
-        color = TextPrimary,
+        color = TextPrimary
     )
     Spacer(Modifier.height(8.dp))
     OutlinedTextField(
@@ -170,8 +161,8 @@ private fun ProfileField(
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
         colors = OutlinedTextFieldDefaults.colors(
             unfocusedBorderColor = FieldBorder,
-            focusedBorderColor = TextPrimary,
-        ),
+            focusedBorderColor = TextPrimary
+        )
     )
     Spacer(Modifier.height(12.dp))
 }
@@ -184,8 +175,8 @@ private fun ProfileScreenPreview() {
             name = "John Doe",
             email = "johndoe@test.com",
             phone = "+45 12 34 56 78",
-            notificationsEnabled = false,
+            notificationsEnabled = false
         ),
-        onSaveChanges = {},
+        onSaveChanges = {}
     )
 }

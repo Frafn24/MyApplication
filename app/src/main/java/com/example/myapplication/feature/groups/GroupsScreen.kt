@@ -45,12 +45,7 @@ private val AvatarBackground = Color(0xFFE5E7EB)
 private val TextPrimary = Color(0xFF111827)
 private val TextSecondary = Color(0xFF374151)
 
-data class GroupSummary(
-    val id: String,
-    val name: String,
-    val memberCount: Int,
-    val balanceText: String,
-)
+data class GroupSummary(val id: String, val name: String, val memberCount: Int, val balanceText: String)
 
 private data class BottomTab(val label: String, val icon: ImageVector)
 
@@ -62,12 +57,12 @@ fun GroupsScreen(
     modifier: Modifier = Modifier,
     onProfileClick: () -> Unit = {},
     onBalancesClick: () -> Unit = {},
-    onAlertsClick: () -> Unit = {},
+    onAlertsClick: () -> Unit = {}
 ) {
     val tabs = listOf(
         BottomTab("Groups", Icons.Default.Person),
         BottomTab("Balances", Icons.AutoMirrored.Filled.List),
-        BottomTab("Alerts", Icons.Default.Notifications),
+        BottomTab("Alerts", Icons.Default.Notifications)
     )
 
     Scaffold(
@@ -91,38 +86,38 @@ fun GroupsScreen(
                             selectedTextColor = TextPrimary,
                             indicatorColor = Color.Transparent,
                             unselectedIconColor = Color(0xFF9CA3AF),
-                            unselectedTextColor = Color(0xFF9CA3AF),
-                        ),
+                            unselectedTextColor = Color(0xFF9CA3AF)
+                        )
                     )
                 }
             }
-        },
+        }
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = 16.dp)
         ) {
             Spacer(Modifier.height(16.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = "My Groups",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TextPrimary,
+                    color = TextPrimary
                 )
                 Box(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(CircleShape)
                         .background(AvatarBackground)
-                        .clickable(onClick = onProfileClick),
+                        .clickable(onClick = onProfileClick)
                 )
             }
 
@@ -141,8 +136,8 @@ fun GroupsScreen(
                 shape = RoundedCornerShape(4.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = ButtonBackground,
-                    contentColor = Color.White,
-                ),
+                    contentColor = Color.White
+                )
             ) {
                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp))
                 Spacer(Modifier.size(4.dp))
@@ -161,32 +156,32 @@ private fun GroupCard(group: GroupSummary, onClick: () -> Unit) {
             .background(CardBackground)
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = group.name,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary,
+                color = TextPrimary
             )
             Spacer(Modifier.height(6.dp))
             Text(
                 text = "${group.memberCount} members",
                 fontSize = 10.sp,
-                color = TextSecondary,
+                color = TextSecondary
             )
             Spacer(Modifier.height(10.dp))
             Text(
                 text = group.balanceText,
                 fontSize = 12.sp,
-                color = TextPrimary,
+                color = TextPrimary
             )
         }
         Icon(
             imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
             contentDescription = null,
-            tint = TextPrimary,
+            tint = TextPrimary
         )
     }
 }
@@ -197,9 +192,9 @@ private fun GroupsScreenPreview() {
     GroupsScreen(
         groups = listOf(
             GroupSummary("1", "Summer Trip", 4, "You are owed 250 DKK"),
-            GroupSummary("2", "Roommates", 3, "You owe 100 DKK"),
+            GroupSummary("2", "Roommates", 3, "You owe 100 DKK")
         ),
         onGroupClick = {},
-        onCreateGroup = {},
+        onCreateGroup = {}
     )
 }
