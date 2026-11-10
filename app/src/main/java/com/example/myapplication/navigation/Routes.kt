@@ -11,4 +11,8 @@ object Routes {
     const val Profile = "profile"
     const val Balances = "balances"
     const val Notifications = "notifications"
+
+    const val AddExpense = "add_expense"
+
+    const val ExpenseDetails = "expense_details"
 }
