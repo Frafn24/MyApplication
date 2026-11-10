@@ -1,5 +1,25 @@
 # MyApplication
 
+## Development
+
+| Command                                                   | What it does                                  |
+| --------------------------------------------------------- | --------------------------------------------- |
+| `./gradlew ktlintCheck`                                   | Check code style (rules in `.editorconfig`)   |
+| `./gradlew ktlintFormat`                                  | Auto-fix code style where possible            |
+| `./gradlew testDebugUnitTest`                             | JVM unit tests (`app/src/test`)               |
+| `./gradlew lintDebug`                                     | Android Lint (fails the build on errors)      |
+| `./gradlew assembleDebug assembleDebugAndroidTest`        | Build the app and the instrumented tests      |
+| `./gradlew connectedDebugAndroidTest`                     | Run instrumented/Compose UI tests on a device |
+
+### Continuous integration
+
+`.github/workflows/ci.yml` runs on every pull request to `master` and every push to
+`master`: ktlint, unit tests, Android Lint, and a debug build of the app and the
+instrumented tests. If a step fails, the reports in `app/build/reports/` are uploaded
+as a workflow artifact. Run the same commands locally before opening a PR.
+
+Instrumented tests need an emulator or device, so CI only builds them.
+
 ## Supabase Database
 
 The app uses Supabase for authentication and the database. The schema is managed

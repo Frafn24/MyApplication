@@ -2,15 +2,27 @@ package com.example.myapplication.feature.auth
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -30,8 +42,7 @@ fun SignUpScreen(onSignUp: () -> Unit, onSignIn: () -> Unit) {
     var acceptTerms by remember { mutableStateOf(false) }
     var acceptNews by remember { mutableStateOf(false) }
 
-    val canSubmit = name.isNotBlank() && email.contains("@") &&
-            password.length >= 6 && password == confirm && acceptTerms
+    val canSubmit = AuthValidation.canSubmitSignUp(name, email, password, confirm, acceptTerms)
 
     Column(
         modifier = Modifier
@@ -48,18 +59,32 @@ fun SignUpScreen(onSignUp: () -> Unit, onSignIn: () -> Unit) {
         AuthTextField("Name", name, { name = it }, "Enter name", Icons.Default.Person)
         Spacer(Modifier.height(12.dp))
         AuthTextField(
-            "Email", email, { email = it }, "Enter email",
-            Icons.Default.Email, keyboardType = KeyboardType.Email
+            "Email",
+            email,
+            { email = it },
+            "Enter email",
+            Icons.Default.Email,
+            keyboardType = KeyboardType.Email
         )
         Spacer(Modifier.height(12.dp))
         AuthTextField(
-            "Password", password, { password = it }, "Enter password",
-            Icons.Default.Lock, isPassword = true, keyboardType = KeyboardType.Password
+            "Password",
+            password,
+            { password = it },
+            "Enter password",
+            Icons.Default.Lock,
+            isPassword = true,
+            keyboardType = KeyboardType.Password
         )
         Spacer(Modifier.height(12.dp))
         AuthTextField(
-            "Confirm Password", confirm, { confirm = it }, "Confirm password",
-            Icons.Default.Lock, isPassword = true, keyboardType = KeyboardType.Password
+            "Confirm Password",
+            confirm,
+            { confirm = it },
+            "Confirm password",
+            Icons.Default.Lock,
+            isPassword = true,
+            keyboardType = KeyboardType.Password
         )
 
         Spacer(Modifier.height(12.dp))
@@ -73,7 +98,9 @@ fun SignUpScreen(onSignUp: () -> Unit, onSignIn: () -> Unit) {
         Row(modifier = Modifier.padding(bottom = 32.dp)) {
             Text("Already have an account? ", fontSize = 12.sp)
             Text(
-                "Sign in", fontSize = 12.sp, fontWeight = FontWeight.Bold,
+                "Sign in",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
                 modifier = Modifier.clickable { onSignIn() }
             )
         }
