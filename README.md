@@ -29,8 +29,51 @@ migrations, the same setup as in `mobile-app`.
 ```text
 supabase/
 ├── config.toml     Supabase CLI config (local stack ports, auth settings)
-└── migrations/     Schema changes, applied in timestamp order
+├── migrations/     Schema changes ("up"), applied in timestamp order
+└── rollbacks/      One "down" file per migration: <same name>.down.sql
 ```
+
+### Up and down migrations
+
+The Supabase CLI only knows "up" migrations and runs every `.sql` file in
+`migrations/`, so the matching "down" files live in `rollbacks/`. Every new
+migration should come with one:
+
+```text
+migrations/20261112120000_group_admins_members.sql        up
+rollbacks/20261112120000_group_admins_members.down.sql    down
+```
+
+Down files undo their migration and run in one transaction. Several of them
+delete data (marked `WARNING` at the top). To roll back, run them newest first
+against the **local** database:
+
+```bash
+psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+  -f supabase/rollbacks/20261112120200_notifications_read_state.down.sql
+```
+
+Afterwards, delete or move the migration file before running `npx supabase db reset`. Otherwise the reset applies it again.
+
+On the shared live database, never run a down file directly. That would leave the
+migration history out of sync, and we don't run `migration repair` there. Instead,
+create a new migration (`npx supabase migration new revert_<name>`), copy the
+down file's contents into it, and push that.
+
+### What each screen uses
+
+| Screen                 | Tables / functions                                                                  |
+| ---------------------- | ----------------------------------------------------------------------------------- |
+| Sign up / Login        | `profiles`, `is_username_available()`                                               |
+| Groups                 | `get_my_groups()`                                                                   |
+| Create Group           | `groups` (`name`, `description`), `create_group()`, `add_group_member()` (by email) |
+| Manage Members         | `group_members` (`role`), `get_group_members()`, `add_group_member()`, delete rows  |
+| Add Expense            | `create_expense()` (equal split into `expense_splits`)                              |
+| Expense Details / Edit | `get_group_expenses()`, `get_expense_details()`, `update_expense()`, `delete_expense()` (payer only) |
+| Balances               | `get_my_balances()`, `send_payment_reminder()`                                      |
+| Balances → details     | `get_shared_expenses()` (the expenses behind one balance)                           |
+| Notifications          | `notifications` (`read_at`, `expense_id`), `mark_notifications_read()`              |
+| Profile                | `profiles` (`full_name`, `phone`, `notifications_enabled`)                          |
 
 ### App configuration
 

@@ -33,7 +33,16 @@ private val AvatarBackground = Color(0xFFE5E7EB)
 private val TextPrimary = Color(0xFF111827)
 private val TextSecondary = Color(0xFF374151)
 
-data class NotificationItem(val id: String, val title: String, val message: String, val timeText: String)
+data class NotificationItem(
+    val id: String,
+    val title: String,
+    val message: String,
+    val timeText: String,
+    val isUnread: Boolean = false,
+    // What opens when the notification is tapped.
+    val groupId: String? = null,
+    val expenseId: String? = null
+)
 
 @Composable
 fun NotificationsScreen(
@@ -97,7 +106,7 @@ private fun NotificationCard(notification: NotificationItem, onClick: () -> Unit
             .padding(horizontal = 6.dp, vertical = 8.dp)
     ) {
         Text(
-            text = notification.title,
+            text = if (notification.isUnread) "● ${notification.title}" else notification.title,
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
             color = TextPrimary
@@ -122,7 +131,7 @@ private fun NotificationCard(notification: NotificationItem, onClick: () -> Unit
 private fun NotificationsScreenPreview() {
     NotificationsScreen(
         notifications = listOf(
-            NotificationItem("1", "New Expense", "Alex added Dinner - 600 DKK", "10 min ago"),
+            NotificationItem("1", "New Expense", "Alex added Dinner - 600 DKK", "10 min ago", isUnread = true),
             NotificationItem("2", "Payment Reminder", "You owe John 100 DKK", "Yesterday"),
             NotificationItem("3", "Group Updated", "Sarah Joined Summer Trip", "2 days ago")
         ),

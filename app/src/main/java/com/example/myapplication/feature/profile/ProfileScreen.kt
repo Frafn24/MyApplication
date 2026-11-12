@@ -1,6 +1,8 @@
 package com.example.myapplication.feature.profile
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,6 +20,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Switch
@@ -51,7 +54,13 @@ data class UserProfile(val name: String, val email: String, val phone: String, v
 fun ProfileScreen(
     profile: UserProfile,
     onSaveChanges: (UserProfile) -> Unit,
+    onSignOut: () -> Unit,
     modifier: Modifier = Modifier,
+    // Whether the phone lets the app show notifications (Android permission + settings).
+    systemNotificationsAllowed: Boolean = true,
+    // Shows Android's "Allow notifications?" popup, or opens the phone's settings.
+    onAllowSystemNotifications: () -> Unit = {},
+    isLoading: Boolean = false,
     message: String? = null
 ) {
     var name by remember { mutableStateOf(profile.name) }
@@ -111,13 +120,28 @@ fun ProfileScreen(
             )
             Switch(
                 checked = notificationsEnabled,
-                onCheckedChange = { notificationsEnabled = it },
+                onCheckedChange = { enabled ->
+                    notificationsEnabled = enabled
+                    if (enabled && !systemNotificationsAllowed) onAllowSystemNotifications()
+                },
                 colors = SwitchDefaults.colors(
                     checkedTrackColor = TextPrimary,
                     uncheckedBorderColor = TextPrimary,
                     uncheckedThumbColor = TextPrimary,
                     uncheckedTrackColor = Color.White
                 )
+            )
+        }
+
+        if (notificationsEnabled && !systemNotificationsAllowed) {
+            Text(
+                text = "Notifications are blocked on this phone. Tap here to allow them.",
+                fontSize = 12.sp,
+                color = TextPrimary,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onAllowSystemNotifications)
+                    .padding(vertical = 8.dp)
             )
         }
 
@@ -138,6 +162,21 @@ fun ProfileScreen(
             )
         ) {
             Text("Save Changes", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        OutlinedButton(
+            onClick = onSignOut,
+            enabled = !isLoading,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(44.dp),
+            shape = RoundedCornerShape(2.dp),
+            border = BorderStroke(1.dp, TextPrimary),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = TextPrimary)
+        ) {
+            Text("Sign Out", fontSize = 14.sp, fontWeight = FontWeight.Bold)
         }
 
         Spacer(Modifier.height(24.dp))
@@ -184,6 +223,7 @@ private fun ProfileScreenPreview() {
             phone = "+45 12 34 56 78",
             notificationsEnabled = false
         ),
-        onSaveChanges = {}
+        onSaveChanges = {},
+        onSignOut = {}
     )
 }

@@ -16,16 +16,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,7 +27,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -48,8 +41,6 @@ private val TextSecondary = Color(0xFF374151)
 
 data class GroupSummary(val id: String, val name: String, val memberCount: Int, val balanceText: String)
 
-private data class BottomTab(val label: String, val icon: ImageVector)
-
 @Composable
 fun GroupsScreen(
     groups: List<GroupSummary>,
@@ -57,43 +48,11 @@ fun GroupsScreen(
     onCreateGroup: () -> Unit,
     modifier: Modifier = Modifier,
     onProfileClick: () -> Unit = {},
-    onBalancesClick: () -> Unit = {},
-    onAlertsClick: () -> Unit = {},
     message: String? = null
 ) {
-    val tabs = listOf(
-        BottomTab("Groups", Icons.Default.Person),
-        BottomTab("Balances", Icons.AutoMirrored.Filled.List),
-        BottomTab("Alerts", Icons.Default.Notifications)
-    )
-
     Scaffold(
         modifier = modifier,
-        containerColor = Color.White,
-        bottomBar = {
-            NavigationBar(containerColor = Color.White) {
-                tabs.forEachIndexed { index, tab ->
-                    NavigationBarItem(
-                        selected = index == 0,
-                        onClick = {
-                            when (index) {
-                                1 -> onBalancesClick()
-                                2 -> onAlertsClick()
-                            }
-                        },
-                        icon = { Icon(tab.icon, contentDescription = tab.label) },
-                        label = { Text(tab.label, fontSize = 10.sp) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = TextPrimary,
-                            selectedTextColor = TextPrimary,
-                            indicatorColor = Color.Transparent,
-                            unselectedIconColor = Color(0xFF9CA3AF),
-                            unselectedTextColor = Color(0xFF9CA3AF)
-                        )
-                    )
-                }
-            }
-        }
+        containerColor = Color.White
     ) { padding ->
         Column(
             modifier = Modifier
