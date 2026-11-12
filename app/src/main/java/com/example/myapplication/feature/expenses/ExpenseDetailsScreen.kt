@@ -1,6 +1,7 @@
 
 package com.example.myapplication.feature.expenses
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,20 +14,29 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.myapplication.ui.components.StatusMessage
 import com.example.myapplication.ui.theme.MyApplicationTheme
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -35,15 +45,52 @@ import java.math.RoundingMode
 data class ExpenseSplit(val memberName: String, val amount: BigDecimal)
 
 // Data displayed on the Expense Details screen
-data class ExpenseDetails(val title: String, val amount: BigDecimal, val paidBy: String, val splits: List<ExpenseSplit>)
+data class ExpenseDetails(
+    val title: String,
+    val amount: BigDecimal,
+    val paidBy: String,
+    val splits: List<ExpenseSplit>,
+    // Only the person who added an expense can edit it.
+    val canEdit: Boolean = true,
+    // Only the person who paid an expense can delete it.
+    val canDelete: Boolean = false
+)
 
 @Composable
 fun ExpenseDetailsScreen(
     expense: ExpenseDetails,
     onBack: () -> Unit,
     onEditExpense: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onDeleteExpense: () -> Unit = {},
+    isLoading: Boolean = false,
+    message: String? = null
 ) {
+    var confirmDelete by remember { mutableStateOf(false) }
+
+    if (confirmDelete) {
+        AlertDialog(
+            onDismissRequest = { confirmDelete = false },
+            title = { Text("Delete expense?") },
+            text = {
+                Text("\"${expense.title}\" will be removed for everyone in the group, and balances are updated.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmDelete = false
+                        onDeleteExpense()
+                    }
+                ) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDelete = false }) { Text("Cancel") }
+            }
+        )
+    }
+
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -159,18 +206,41 @@ fun ExpenseDetailsScreen(
 
             Spacer(Modifier.height(24.dp))
 
+            message?.let { StatusMessage(it) }
+
             // Edit expense button
-            Button(
-                onClick = onEditExpense,
-                shape = RectangleShape,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp)
-            ) {
-                Text(
-                    text = "Edit Expense",
-                    fontWeight = FontWeight.Bold
-                )
+            if (expense.canEdit) {
+                Button(
+                    onClick = onEditExpense,
+                    shape = RectangleShape,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                ) {
+                    Text(
+                        text = "Edit Expense",
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            // Delete expense button (only for the payer), asks first.
+            if (expense.canDelete) {
+                OutlinedButton(
+                    onClick = { confirmDelete = true },
+                    enabled = !isLoading,
+                    shape = RectangleShape,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                ) {
+                    Text(
+                        text = "Delete Expense",
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
 
             Spacer(Modifier.height(12.dp))

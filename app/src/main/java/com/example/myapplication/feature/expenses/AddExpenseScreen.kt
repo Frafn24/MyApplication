@@ -39,26 +39,47 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.myapplication.ui.components.StatusMessage
 import com.example.myapplication.ui.theme.MyApplicationTheme
 import java.math.BigDecimal
 import java.math.RoundingMode
 
+/** A group member that can pay for or share an expense. */
+data class ExpenseMember(val id: String, val name: String)
+
+/** What the user entered. [paidBy] and [splitBetween] are user ids. */
 data class ExpenseDraft(val title: String, val amount: BigDecimal, val paidBy: String, val splitBetween: List<String>)
 
+/**
+ * Used both to add an expense and, with [initial], to edit one.
+ * [defaultPayerId] is preselected as payer for a new expense (normally the signed-in user).
+ */
 @Composable
 fun AddExpenseScreen(
-    members: List<String>,
+    members: List<ExpenseMember>,
     onBack: () -> Unit,
     onAddExpense: (ExpenseDraft) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    initial: ExpenseDraft? = null,
+    defaultPayerId: String? = null,
+    screenTitle: String = "Add Expense",
+    buttonText: String = "Add Expense",
+    isLoading: Boolean = false,
+    message: String? = null
 ) {
-    var title by remember { mutableStateOf("") }
-    var amountText by remember { mutableStateOf("") }
-    var paidBy by remember(members) {
-        mutableStateOf(members.firstOrNull().orEmpty())
+    var title by remember(initial) { mutableStateOf(initial?.title.orEmpty()) }
+    var amountText by remember(initial) {
+        mutableStateOf(initial?.amount?.stripTrailingZeros()?.toPlainString().orEmpty())
     }
-    var selectedMembers by remember(members) {
-        mutableStateOf(members.toSet())
+    var paidBy by remember(members, initial) {
+        mutableStateOf(
+            initial?.paidBy
+                ?: defaultPayerId?.takeIf { id -> members.any { it.id == id } }
+                ?: members.firstOrNull()?.id.orEmpty()
+        )
+    }
+    var selectedMembers by remember(members, initial) {
+        mutableStateOf(initial?.splitBetween?.toSet() ?: members.map { it.id }.toSet())
     }
     var payerMenuOpen by remember { mutableStateOf(false) }
 
@@ -68,7 +89,8 @@ fun AddExpenseScreen(
     val validForm = title.isNotBlank() &&
         validAmount &&
         paidBy.isNotBlank() &&
-        selectedMembers.isNotEmpty()
+        selectedMembers.isNotEmpty() &&
+        !isLoading
 
     val splitAmount = if (validAmount && selectedMembers.isNotEmpty()) {
         amount!!.divide(
@@ -102,7 +124,7 @@ fun AddExpenseScreen(
                 }
 
                 Text(
-                    text = "Add Expense",
+                    text = screenTitle,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
@@ -177,7 +199,7 @@ fun AddExpenseScreen(
                     shape = RectangleShape
                 ) {
                     Text(
-                        text = paidBy.ifBlank { "Choose payer" },
+                        text = members.firstOrNull { it.id == paidBy }?.name ?: "Choose payer",
                         modifier = Modifier.weight(1f)
                     )
 
@@ -195,9 +217,9 @@ fun AddExpenseScreen(
                 ) {
                     members.forEach { member ->
                         DropdownMenuItem(
-                            text = { Text(member) },
+                            text = { Text(member.name) },
                             onClick = {
-                                paidBy = member
+                                paidBy = member.id
                                 payerMenuOpen = false
                             }
                         )
@@ -218,17 +240,17 @@ fun AddExpenseScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Checkbox(
-                            checked = member in selectedMembers,
+                            checked = member.id in selectedMembers,
                             onCheckedChange = { checked ->
                                 selectedMembers = if (checked) {
-                                    selectedMembers + member
+                                    selectedMembers + member.id
                                 } else {
-                                    selectedMembers - member
+                                    selectedMembers - member.id
                                 }
                             }
                         )
 
-                        Text(member)
+                        Text(member.name)
                     }
                 }
             }
@@ -248,6 +270,8 @@ fun AddExpenseScreen(
 
             Spacer(Modifier.height(8.dp))
 
+            message?.let { StatusMessage(it) }
+
             // Add expense button
             Button(
                 onClick = {
@@ -257,7 +281,7 @@ fun AddExpenseScreen(
                                 title = title.trim(),
                                 amount = amount!!,
                                 paidBy = paidBy,
-                                splitBetween = members.filter {
+                                splitBetween = members.map { it.id }.filter {
                                     it in selectedMembers
                                 }
                             )
@@ -271,7 +295,7 @@ fun AddExpenseScreen(
                     .height(48.dp)
             ) {
                 Text(
-                    text = "Add Expense",
+                    text = buttonText,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -292,10 +316,10 @@ private fun AddExpenseScreenPreview() {
     MyApplicationTheme {
         AddExpenseScreen(
             members = listOf(
-                "You",
-                "Alex",
-                "Sarah",
-                "John"
+                ExpenseMember("1", "You"),
+                ExpenseMember("2", "Alex"),
+                ExpenseMember("3", "Sarah"),
+                ExpenseMember("4", "John")
             ),
             onBack = {},
             onAddExpense = {}
