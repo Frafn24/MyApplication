@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.myapplication.ui.components.AuthTextField
 import com.example.myapplication.ui.components.PrimaryButton
+import com.example.myapplication.ui.components.StatusMessage
 
 @Composable
 fun SignUpScreen(
@@ -72,6 +73,10 @@ fun SignUpScreen(
         CheckRow("I accept terms and conditions*", uiState.acceptTerms, onTermsChanged)
         CheckRow("I accept to get newsletters and offers", uiState.acceptNews, onNewsChanged)
 
+        uiState.errorMessage?.let {
+            StatusMessage(it)
+        }
+
         Spacer(Modifier.height(20.dp))
         PrimaryButton("Sign Up", {
             onSignUpSubmit()
@@ -81,7 +86,9 @@ fun SignUpScreen(
         Row(modifier = Modifier.padding(bottom = 32.dp)) {
             Text("Already have an account? ", fontSize = 12.sp)
             Text(
-                "Sign in", fontSize = 12.sp, fontWeight = FontWeight.Bold,
+                "Sign in",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
                 modifier = Modifier.clickable { onSignIn() }
             )
         }

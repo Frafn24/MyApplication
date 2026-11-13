@@ -16,9 +16,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-//import com.example.myapplication.ui.components.AppLogo
 import com.example.myapplication.ui.components.AuthTextField
 import com.example.myapplication.ui.components.PrimaryButton
+import com.example.myapplication.ui.components.StatusMessage
 
 @Composable
 fun LoginScreen(
@@ -41,7 +41,7 @@ fun LoginScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(Modifier.height(64.dp))
-        //AppLogo(Modifier.size(96.dp))
+        // AppLogo(Modifier.size(96.dp))
         Spacer(Modifier.height(24.dp))
         Text("Hello Welcome!", fontSize = 24.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(40.dp))
@@ -59,6 +59,11 @@ fun LoginScreen(
         TextButton(onClick = onForgotPassword, modifier = Modifier.align(Alignment.End)) {
             Text("Forgot password?", fontSize = 12.sp, color = Color.Black)
         }
+
+        uiState.errorMessage?.let {
+            StatusMessage(it)
+        }
+
         Spacer(Modifier.height(12.dp))
 
         PrimaryButton("Sign in", {
@@ -70,7 +75,9 @@ fun LoginScreen(
         Row(modifier = Modifier.padding(bottom = 32.dp)) {
             Text("Don't have an account? ", fontSize = 12.sp)
             Text(
-                "Sign up", fontSize = 12.sp, fontWeight = FontWeight.Bold,
+                "Sign up",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
                 modifier = Modifier.clickable { onSignUp() }
             )
         }

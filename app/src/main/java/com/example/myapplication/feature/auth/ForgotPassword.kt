@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.myapplication.ui.components.AuthTextField
 import com.example.myapplication.ui.components.PrimaryButton
+import com.example.myapplication.ui.components.StatusMessage
 
 @Composable
 fun ForgotPasswordScreen(
@@ -37,8 +38,9 @@ fun ForgotPasswordScreen(
             .padding(horizontal = 24.dp)
     ) {
         Spacer(Modifier.height(48.dp))
+
         IconButton(onClick = onBack) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Tilbage")
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
         }
 
         Column(
@@ -61,7 +63,16 @@ fun ForgotPasswordScreen(
             )
 
             Spacer(Modifier.height(32.dp))
-            PrimaryButton("Send Email", onClick = onSendEmail, enabled = uiState.email.contains("@") && !uiState.isLoading)
+
+            uiState.errorMessage?.let {
+                StatusMessage(it)
+            }
+
+            PrimaryButton(
+                "Send Email",
+                onClick = onSendEmail,
+                enabled = AuthValidation.isValidEmail(uiState.email) &&
+                    !uiState.isLoading)
         }
         Spacer(Modifier.height(96.dp))
     }
