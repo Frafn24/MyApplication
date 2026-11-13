@@ -24,10 +24,7 @@ import androidx.compose.ui.unit.dp
  * Network detection is intentionally kept outside this UI component.
  */
 @Composable
-fun OfflineBanner(
-    visible: Boolean,
-    modifier: Modifier = Modifier,
-) {
+fun OfflineBanner(visible: Boolean, modifier: Modifier = Modifier) {
     if (!visible) return
 
     Row(
@@ -36,23 +33,23 @@ fun OfflineBanner(
             .background(Color(0xFFDCE0E6))
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.Top,
-        horizontalArrangement = Arrangement.Start,
+        horizontalArrangement = Arrangement.Start
     ) {
         Icon(
             imageVector = Icons.Default.WifiOff,
             contentDescription = "Offline",
             tint = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.size(18.dp),
+            modifier = Modifier.size(18.dp)
         )
         Spacer(Modifier.size(10.dp))
         Column {
             Text(
                 text = "You are offline",
-                style = MaterialTheme.typography.titleSmall,
+                style = MaterialTheme.typography.titleSmall
             )
             Text(
                 text = "Showing saved data. Changes will sync when you're back online.",
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodySmall
             )
         }
     }

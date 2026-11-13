@@ -8,10 +8,8 @@ import androidx.work.WorkerParameters
  * Skeleton for future Room-to-Supabase synchronization.
  * The remote upload is intentionally not implemented yet.
  */
-class SyncExpensesWorker(
-    appContext: Context,
-    workerParams: WorkerParameters,
-) : CoroutineWorker(appContext, workerParams) {
+class SyncExpensesWorker(appContext: Context, workerParams: WorkerParameters) :
+    CoroutineWorker(appContext, workerParams) {
 
     override suspend fun doWork(): Result {
         // TODO: Load pending expenses from Room and upload them to Supabase.

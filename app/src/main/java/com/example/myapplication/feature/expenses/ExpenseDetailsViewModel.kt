@@ -6,9 +6,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-data class ExpenseDetailsUiState(
-    val expense: Expense? = null,
-)
+data class ExpenseDetailsUiState(val expense: Expense? = null)
 
 /** Scaffold ViewModel; feature logic is added when ExpenseDetailsScreen is implemented. */
 class ExpenseDetailsViewModel : ViewModel() {

@@ -2,9 +2,9 @@ package com.example.myapplication.data.local
 
 import android.content.Context
 import androidx.room.Database
-import androidx.room.migration.Migration
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
 
 @Database(
     entities = [
@@ -14,10 +14,10 @@ import androidx.room.RoomDatabase
         ExpenseEntity::class,
         BalanceEntity::class,
         NotificationEntity::class,
-        SyncMetadataEntity::class,
+        SyncMetadataEntity::class
     ],
     version = 3,
-    exportSchema = false,
+    exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun userDao(): UserDao
@@ -31,14 +31,13 @@ abstract class AppDatabase : RoomDatabase() {
         @Volatile
         private var instance: AppDatabase? = null
 
-        fun getInstance(context: Context): AppDatabase =
-            instance ?: synchronized(this) {
-                instance ?: Room.databaseBuilder(
-                    context.applicationContext,
-                    AppDatabase::class.java,
-                    "my_application.db",
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { instance = it }
-            }
+        fun getInstance(context: Context): AppDatabase = instance ?: synchronized(this) {
+            instance ?: Room.databaseBuilder(
+                context.applicationContext,
+                AppDatabase::class.java,
+                "my_application.db"
+            ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { instance = it }
+        }
 
         private val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(database: androidx.sqlite.db.SupportSQLiteDatabase) {
@@ -54,7 +53,7 @@ abstract class AppDatabase : RoomDatabase() {
                         isDeleted INTEGER NOT NULL,
                         PRIMARY KEY(entityType, entityId)
                     )
-                    """.trimIndent(),
+                    """.trimIndent()
                 )
             }
         }
@@ -73,14 +72,14 @@ abstract class AppDatabase : RoomDatabase() {
                         syncStatus TEXT NOT NULL DEFAULT 'SYNCED',
                         PRIMARY KEY(id)
                     )
-                    """.trimIndent(),
+                    """.trimIndent()
                 )
                 database.execSQL(
                     """
                     INSERT INTO expenses_new (id, groupId, title, amountInCents, paidBy, splitBetween, syncStatus)
                     SELECT id, groupId, title, amountDkk * 100, paidBy, splitBetween, 'SYNCED'
                     FROM expenses
-                    """.trimIndent(),
+                    """.trimIndent()
                 )
                 database.execSQL("DROP TABLE expenses")
                 database.execSQL("ALTER TABLE expenses_new RENAME TO expenses")

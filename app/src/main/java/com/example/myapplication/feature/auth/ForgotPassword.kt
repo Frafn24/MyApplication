@@ -1,11 +1,19 @@
 package com.example.myapplication.feature.auth
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Email
-import androidx.compose.material3.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
@@ -18,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.myapplication.ui.components.AuthTextField
 import com.example.myapplication.ui.components.PrimaryButton
+import com.example.myapplication.ui.components.StatusMessage
 
 @Composable
 fun ForgotPasswordScreen(
@@ -25,7 +34,7 @@ fun ForgotPasswordScreen(
     onEmailChanged: (String) -> Unit,
     onBack: () -> Unit,
     onSendEmail: () -> Unit,
-    onEmailSent: () -> Unit,
+    onEmailSent: () -> Unit
 ) {
     LaunchedEffect(uiState.emailSent) {
         if (uiState.emailSent) onEmailSent()
@@ -37,8 +46,9 @@ fun ForgotPasswordScreen(
             .padding(horizontal = 24.dp)
     ) {
         Spacer(Modifier.height(48.dp))
+
         IconButton(onClick = onBack) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Tilbage")
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
         }
 
         Column(
@@ -56,12 +66,26 @@ fun ForgotPasswordScreen(
             Spacer(Modifier.height(24.dp))
 
             AuthTextField(
-                "Enter Email", uiState.email, onEmailChanged, "Enter email",
-                Icons.Default.Email, keyboardType = KeyboardType.Email
+                "Enter Email",
+                uiState.email,
+                onEmailChanged,
+                "Enter email",
+                Icons.Default.Email,
+                keyboardType = KeyboardType.Email
             )
 
             Spacer(Modifier.height(32.dp))
-            PrimaryButton("Send Email", onClick = onSendEmail, enabled = uiState.email.contains("@") && !uiState.isLoading)
+
+            uiState.errorMessage?.let {
+                StatusMessage(it)
+            }
+
+            PrimaryButton(
+                "Send Email",
+                onClick = onSendEmail,
+                enabled = AuthValidation.isValidEmail(uiState.email) &&
+                    !uiState.isLoading
+            )
         }
         Spacer(Modifier.height(96.dp))
     }

@@ -29,7 +29,7 @@ class WorkManagerSyncScheduler(context: Context) : SyncScheduler {
         workManager.enqueueUniqueWork(
             EXPENSE_SYNC_WORK,
             ExistingWorkPolicy.KEEP,
-            request,
+            request
         )
     }
 

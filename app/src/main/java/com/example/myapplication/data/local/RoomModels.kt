@@ -1,7 +1,7 @@
 package com.example.myapplication.data.local
 
-import androidx.room.Entity
 import androidx.room.ColumnInfo
+import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 @Entity(tableName = "users")
@@ -10,7 +10,7 @@ data class UserEntity(
     val name: String,
     val email: String,
     val phone: String,
-    val notificationsEnabled: Boolean,
+    val notificationsEnabled: Boolean
 )
 
 @Entity(tableName = "groups")
@@ -19,16 +19,11 @@ data class GroupEntity(
     val name: String,
     val description: String = "",
     val memberCount: Int,
-    val balanceText: String,
+    val balanceText: String
 )
 
 @Entity(tableName = "group_members", primaryKeys = ["groupId", "userId"])
-data class GroupMemberEntity(
-    val groupId: String,
-    val userId: String,
-    val name: String,
-    val isAdmin: Boolean,
-)
+data class GroupMemberEntity(val groupId: String, val userId: String, val name: String, val isAdmin: Boolean)
 
 @Entity(tableName = "expenses")
 data class ExpenseEntity(
@@ -39,7 +34,7 @@ data class ExpenseEntity(
     val paidBy: String,
     val splitBetween: String,
     @ColumnInfo(defaultValue = "'SYNCED'")
-    val syncStatus: String = SyncStatus.SYNCED,
+    val syncStatus: String = SyncStatus.SYNCED
 )
 
 @Entity(tableName = "balances")
@@ -49,7 +44,7 @@ data class BalanceEntity(
     val groupName: String,
     val description: String,
     val amountDkk: Int,
-    val isOwedToCurrentUser: Boolean,
+    val isOwedToCurrentUser: Boolean
 )
 
 @Entity(tableName = "notifications")
@@ -57,5 +52,5 @@ data class NotificationEntity(
     @PrimaryKey val id: String,
     val title: String,
     val description: String,
-    val timeLabel: String,
+    val timeLabel: String
 )

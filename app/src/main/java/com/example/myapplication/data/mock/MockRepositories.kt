@@ -30,9 +30,11 @@ class MockAuthRepository : AuthRepository {
             Result.failure(IllegalArgumentException("Please check the registration details"))
         }
 
-    override suspend fun sendPasswordReset(email: String): Result<Unit> =
-        if (email.contains("@")) Result.success(Unit)
-        else Result.failure(IllegalArgumentException("Enter a valid email address"))
+    override suspend fun sendPasswordReset(email: String): Result<Unit> = if (email.contains("@")) {
+        Result.success(Unit)
+    } else {
+        Result.failure(IllegalArgumentException("Enter a valid email address"))
+    }
 }
 
 class MockGroupRepository : GroupRepository {
@@ -81,9 +83,9 @@ class MockExpenseRepository : ExpenseRepository {
         groupId: String,
         description: String,
         amountInCents: Long,
-        payerId: String,
+        payerId: String
     ): Result<Expense> = addExpense(
-        Expense("expense-${System.currentTimeMillis()}", groupId, description, amountInCents, payerId, listOf(payerId)),
+        Expense("expense-${System.currentTimeMillis()}", groupId, description, amountInCents, payerId, listOf(payerId))
     )
 
     override suspend fun retryExpense(expenseId: String): Result<Unit> = Result.success(Unit)

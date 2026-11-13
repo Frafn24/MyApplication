@@ -6,9 +6,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-data class BalancesUiState(
-    val balances: List<Balance> = emptyList(),
-)
+data class BalancesUiState(val balances: List<Balance> = emptyList())
 
 /** Scaffold ViewModel; feature logic is added when BalancesScreen is implemented. */
 class BalancesViewModel : ViewModel() {

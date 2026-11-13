@@ -14,7 +14,7 @@ data class SyncMetadataEntity(
     val state: String = SyncState.SYNCED,
     val localUpdatedAt: Long = 0L,
     val serverUpdatedAt: Long? = null,
-    val isDeleted: Boolean = false,
+    val isDeleted: Boolean = false
 )
 
 object SyncState {

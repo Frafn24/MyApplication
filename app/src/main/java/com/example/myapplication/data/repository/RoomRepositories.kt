@@ -6,8 +6,8 @@ import com.example.myapplication.data.local.ExpenseEntity
 import com.example.myapplication.data.local.GroupEntity
 import com.example.myapplication.data.local.GroupMemberEntity
 import com.example.myapplication.data.local.NotificationEntity
-import com.example.myapplication.data.local.UserEntity
 import com.example.myapplication.data.local.SyncStatus
+import com.example.myapplication.data.local.UserEntity
 import com.example.myapplication.data.model.AppNotification
 import com.example.myapplication.data.model.Balance
 import com.example.myapplication.data.model.Expense
@@ -29,7 +29,7 @@ private fun ExpenseEntity.toModel() = Expense(
     title = title,
     amountInCents = amountInCents,
     paidBy = paidBy,
-    splitBetween = splitBetween.split("|").filter(String::isNotBlank),
+    splitBetween = splitBetween.split("|").filter(String::isNotBlank)
 )
 
 private fun Expense.toEntity() = ExpenseEntity(
@@ -38,7 +38,7 @@ private fun Expense.toEntity() = ExpenseEntity(
     title = title,
     amountInCents = amountInCents,
     paidBy = paidBy,
-    splitBetween = splitBetween.joinToString("|"),
+    splitBetween = splitBetween.joinToString("|")
 )
 
 private fun BalanceEntity.toModel() = Balance(groupId, groupName, description, amountDkk, isOwedToCurrentUser)
@@ -61,7 +61,7 @@ class RoomGroupRepository(database: AppDatabase) : GroupRepository {
             name = title,
             description = description,
             memberCount = 1,
-            balanceText = "No balance yet",
+            balanceText = "No balance yet"
         )
         dao.insert(group)
         dao.insertMember(GroupMemberEntity(group.id, "current-user", "You", true))
@@ -75,10 +75,8 @@ class RoomGroupRepository(database: AppDatabase) : GroupRepository {
     }
 }
 
-class RoomExpenseRepository(
-    database: AppDatabase,
-    private val syncScheduler: SyncScheduler = NoOpSyncScheduler(),
-) : ExpenseRepository {
+class RoomExpenseRepository(database: AppDatabase, private val syncScheduler: SyncScheduler = NoOpSyncScheduler()) :
+    ExpenseRepository {
     private val dao = database.expenseDao()
 
     override suspend fun getExpenses(groupId: String): Result<List<Expense>> = runCatching {
@@ -103,7 +101,7 @@ class RoomExpenseRepository(
         groupId: String,
         description: String,
         amountInCents: Long,
-        payerId: String,
+        payerId: String
     ): Result<Expense> = runCatching {
         val expense = Expense(
             id = "expense-${System.currentTimeMillis()}",
@@ -111,7 +109,7 @@ class RoomExpenseRepository(
             title = description,
             amountInCents = amountInCents,
             paidBy = payerId,
-            splitBetween = listOf(payerId),
+            splitBetween = listOf(payerId)
         )
         dao.insert(expense.toEntity().copy(syncStatus = SyncStatus.PENDING))
         syncScheduler.enqueueExpenseSync()
