@@ -7,8 +7,6 @@ plugins {
     alias(libs.plugins.ktlint)
 }
 
-// Supabase configuration is read from local.properties (git-ignored) or,
-// as a fallback, from environment variables (e.g. in CI).
 val localProperties =
     Properties().apply {
         val file = rootProject.file("local.properties")
@@ -33,7 +31,11 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        buildConfigField("String", "SUPABASE_URL", "\"${configValue("supabase.url", "SUPABASE_URL")}\"")
+        buildConfigField(
+            "String",
+            "SUPABASE_URL",
+            "\"${configValue("supabase.url", "SUPABASE_URL")}\""
+        )
         buildConfigField(
             "String",
             "SUPABASE_PUBLISHABLE_KEY",
@@ -49,10 +51,12 @@ android {
             }
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+
     buildFeatures {
         compose = true
         buildConfig = true
@@ -74,6 +78,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.compose.material.icons.extended)
 

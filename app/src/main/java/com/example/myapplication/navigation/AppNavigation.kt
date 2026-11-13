@@ -14,7 +14,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -26,6 +25,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
 import androidx.navigation.NavOptionsBuilder
@@ -33,12 +34,17 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.myapplication.data.AppContainer
+import com.example.myapplication.data.AppViewModelFactory
 import com.example.myapplication.data.remote.AppRepository
 import com.example.myapplication.data.remote.runCatchingCancellable
 import com.example.myapplication.data.remote.toUserMessage
 import com.example.myapplication.feature.auth.ForgotPasswordScreen
+import com.example.myapplication.feature.auth.ForgotPasswordViewModel
 import com.example.myapplication.feature.auth.LoginScreen
+import com.example.myapplication.feature.auth.LoginViewModel
 import com.example.myapplication.feature.auth.SignUpScreen
+import com.example.myapplication.feature.auth.SignUpViewModel
 import com.example.myapplication.feature.balances.BalancesScreen
 import com.example.myapplication.feature.expenses.AddExpenseScreen
 import com.example.myapplication.feature.expenses.ExpenseDetailsScreen
@@ -46,6 +52,7 @@ import com.example.myapplication.feature.expenses.SharedExpensesScreen
 import com.example.myapplication.feature.groups.CreateGroupScreen
 import com.example.myapplication.feature.groups.GroupDetailsScreen
 import com.example.myapplication.feature.groups.GroupsScreen
+import com.example.myapplication.feature.groups.GroupsViewModel
 import com.example.myapplication.feature.groups.ManageMembersScreen
 import com.example.myapplication.feature.notifications.NotificationsScreen
 import com.example.myapplication.feature.profile.ProfileScreen
@@ -58,8 +65,10 @@ import kotlinx.coroutines.launch
 // isImeVisible: hide the bottom bar while the keyboard is open.
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun AppNavigation() {
+fun AppNavigation(container: AppContainer) {
     val navController = rememberNavController()
+    val factory = remember { AppViewModelFactory(container) }
+
     val currentEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentEntry?.destination?.route
     val showBottomBar = currentRoute != null && currentRoute !in SignedOutRoutes && !WindowInsets.isImeVisible
@@ -94,7 +103,7 @@ fun AppNavigation() {
                 .consumeWindowInsets(innerPadding)
                 .imePadding()
         ) {
-            AppNavHost(navController)
+            AppNavHost(navController, factory)
         }
     }
 }
@@ -117,7 +126,7 @@ private fun NavHostController.openTab(route: String) {
 }
 
 @Composable
-private fun AppNavHost(navController: NavHostController) {
+private fun AppNavHost(navController: NavHostController, factory: AppViewModelFactory) {
     NavHost(
         navController = navController,
         startDestination = Routes.Splash
@@ -134,65 +143,90 @@ private fun AppNavHost(navController: NavHostController) {
             )
         }
         composable(Routes.Login) { entry ->
-            val request = rememberRequest()
-            // Set by Forgot Password after the reset email was sent.
-            val notice by entry.savedStateHandle.getStateFlow<String?>(LOGIN_NOTICE, null).collectAsState()
+            val loginViewModel: LoginViewModel = viewModel(factory = factory)
+            val uiState by loginViewModel.uiState.collectAsStateWithLifecycle()
+
             LoginScreen(
-                onSignIn = { email, password ->
-                    request.run {
-                        AppRepository.signIn(email, password)
-                        navController.navigateToGroups(entry)
-                    }
+                uiState = uiState,
+                onEmailChanged = loginViewModel::updateEmail,
+                onPasswordChanged = loginViewModel::updatePassword,
+                onLogin = loginViewModel::login,
+                onSignIn = {
+                    navController.navigateToGroups(entry)
                 },
-                onForgotPassword = { navController.navigateFrom(entry, Routes.ForgotPassword) },
-                onSignUp = { navController.navigateFrom(entry, Routes.SignUp) },
-                isLoading = request.isLoading,
-                message = request.message ?: notice
+                onForgotPassword = {
+                    navController.navigate(Routes.ForgotPassword)
+                },
+                onSignUp = {
+                    navController.navigate(Routes.SignUp)
+                }
             )
         }
         composable(Routes.SignUp) { entry ->
-            val request = rememberRequest()
+            val signUpViewModel: SignUpViewModel = viewModel(factory = factory)
+            val uiState by signUpViewModel.uiState.collectAsStateWithLifecycle()
+
             SignUpScreen(
-                onSignUp = { name, email, password ->
-                    request.run {
-                        if (AppRepository.signUp(name, email, password)) {
-                            navController.navigateToGroups(entry)
-                        } else {
-                            request.message = "Check your email to confirm your account, then sign in."
-                        }
-                    }
+                uiState = uiState,
+                onNameChanged = signUpViewModel::updateName,
+                onEmailChanged = signUpViewModel::updateEmail,
+                onPasswordChanged = signUpViewModel::updatePassword,
+                onConfirmPasswordChanged = signUpViewModel::updateConfirmPassword,
+                onTermsChanged = signUpViewModel::updateAcceptTerms,
+                onNewsChanged = signUpViewModel::updateAcceptNews,
+                onSignUpSubmit = signUpViewModel::signUp,
+                onSignUp = {
+                    navController.navigateToGroups(entry)
                 },
-                onSignIn = { navController.popFrom(entry) },
-                isLoading = request.isLoading,
-                message = request.message
+                onSignIn = {
+                    navController.popFrom(entry)
+                }
             )
         }
         composable(Routes.ForgotPassword) { entry ->
-            val request = rememberRequest()
+            val forgotPasswordViewModel: ForgotPasswordViewModel =
+                viewModel(factory = factory)
+            val uiState by forgotPasswordViewModel.uiState.collectAsStateWithLifecycle()
+
             ForgotPasswordScreen(
-                onBack = { navController.popFrom(entry) },
-                onSendEmail = { email ->
-                    request.run {
-                        AppRepository.sendPasswordReset(email)
-                        navController.previousBackStackEntry?.savedStateHandle?.set(
+                uiState = uiState,
+                onEmailChanged = forgotPasswordViewModel::updateEmail,
+                onBack = {
+                    navController.popFrom(entry)
+                },
+                onSendEmail = forgotPasswordViewModel::sendPasswordReset,
+                onEmailSent = {
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set(
                             LOGIN_NOTICE,
                             "We sent you an email with a link to reset your password."
                         )
-                        navController.popFrom(entry)
-                    }
-                },
-                isLoading = request.isLoading,
-                message = request.message
+
+                    navController.popFrom(entry)
+                }
             )
         }
         composable(Routes.Groups) { entry ->
-            val groups by loadFromDatabase { AppRepository.getGroups() }
+            val groupsViewModel: GroupsViewModel = viewModel(factory = factory)
+            val uiState by groupsViewModel.uiState.collectAsStateWithLifecycle()
+
             GroupsScreen(
-                groups = groups.data.orEmpty(),
-                onGroupClick = { navController.navigateFrom(entry, Routes.groupDetails(it.id)) },
-                onCreateGroup = { navController.navigateFrom(entry, Routes.CreateGroup) },
-                onProfileClick = { navController.navigateFrom(entry, Routes.Profile) },
-                message = groups.error
+                groups = uiState.groups,
+                isLoading = uiState.isLoading,
+                onGroupClick = {
+                    navController.navigateFrom(
+                        entry,
+                        Routes.groupDetails(it.id)
+                    )
+                },
+                onCreateGroup = {
+                    navController.navigateFrom(entry, Routes.CreateGroup)
+                },
+                onProfileClick = {
+                    navController.navigateFrom(entry, Routes.Profile)
+                },
+                message = uiState.errorMessage
             )
         }
         composable(Routes.CreateGroup) { entry ->

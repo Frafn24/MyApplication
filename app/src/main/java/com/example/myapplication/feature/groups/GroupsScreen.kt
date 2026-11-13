@@ -19,6 +19,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -31,6 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.myapplication.data.model.GroupSummary
 import com.example.myapplication.ui.components.StatusMessage
 
 private val CardBackground = Color(0xFFDCE0E6)
@@ -39,11 +41,10 @@ private val AvatarBackground = Color(0xFFE5E7EB)
 private val TextPrimary = Color(0xFF111827)
 private val TextSecondary = Color(0xFF374151)
 
-data class GroupSummary(val id: String, val name: String, val memberCount: Int, val balanceText: String)
-
 @Composable
 fun GroupsScreen(
     groups: List<GroupSummary>,
+    isLoading: Boolean = false,
     onGroupClick: (GroupSummary) -> Unit,
     onCreateGroup: () -> Unit,
     modifier: Modifier = Modifier,
@@ -86,25 +87,44 @@ fun GroupsScreen(
 
             message?.let { StatusMessage(it) }
 
-            groups.forEach { group ->
-                GroupCard(group = group, onClick = { onGroupClick(group) })
-                Spacer(Modifier.height(12.dp))
-            }
+            if (isLoading && groups.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            } else {
+                groups.forEach { group ->
+                    GroupCard(group = group, onClick = { onGroupClick(group) })
+                    Spacer(Modifier.height(12.dp))
+                }
 
-            Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(4.dp))
 
-            Button(
-                onClick = onCreateGroup,
-                modifier = Modifier.align(Alignment.CenterHorizontally),
-                shape = RoundedCornerShape(4.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = ButtonBackground,
-                    contentColor = Color.White
-                )
-            ) {
-                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp))
-                Spacer(Modifier.size(4.dp))
-                Text("Create New Group", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                Button(
+                    onClick = onCreateGroup,
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                    shape = RoundedCornerShape(4.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = ButtonBackground,
+                        contentColor = Color.White
+                    )
+                ) {
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(Modifier.size(4.dp))
+                    Text(
+                        "Create New Group",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
         }
     }
