@@ -2,6 +2,7 @@ package com.example.myapplication.navigation
 
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
@@ -24,6 +25,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -37,6 +39,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.myapplication.data.AppContainer
 import com.example.myapplication.data.AppViewModelFactory
+import com.example.myapplication.data.network.NetworkMonitor
 import com.example.myapplication.data.remote.AppRepository
 import com.example.myapplication.data.remote.runCatchingCancellable
 import com.example.myapplication.data.remote.toUserMessage
@@ -60,6 +63,7 @@ import com.example.myapplication.feature.notifications.NotificationsScreen
 import com.example.myapplication.feature.profile.ProfileScreen
 import com.example.myapplication.feature.splash.SplashScreen
 import com.example.myapplication.notifications.rememberNotificationPermission
+import com.example.myapplication.ui.components.OfflineBanner
 import com.example.myapplication.ui.components.StatusMessage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -70,6 +74,10 @@ import kotlinx.coroutines.launch
 fun AppNavigation(container: AppContainer) {
     val navController = rememberNavController()
     val factory = remember { AppViewModelFactory(container) }
+
+    val context = LocalContext.current
+    val networkMonitor = remember(context) { NetworkMonitor(context) }
+    val isOnline by networkMonitor.isOnline.collectAsStateWithLifecycle(initialValue = true)
 
     val currentEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentEntry?.destination?.route
@@ -105,7 +113,15 @@ fun AppNavigation(container: AppContainer) {
                 .consumeWindowInsets(innerPadding)
                 .imePadding()
         ) {
-            AppNavHost(navController, factory, container.authRepository)
+            Column(modifier = Modifier.fillMaxSize()) {
+                OfflineBanner(visible = !isOnline)
+
+                Box(
+                    modifier = Modifier.fillMaxSize().weight(1f)
+                ) {
+                    AppNavHost(navController, factory, container.authRepository)
+                }
+            }
         }
     }
 }
