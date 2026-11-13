@@ -1,5 +1,6 @@
 package com.example.myapplication.data.remote
 
+import com.example.myapplication.data.model.GroupSummary
 import com.example.myapplication.feature.balances.BalanceDirection
 import com.example.myapplication.feature.balances.BalanceEntry
 import com.example.myapplication.feature.balances.GroupBalances
@@ -11,7 +12,6 @@ import com.example.myapplication.feature.expenses.SharedExpenses
 import com.example.myapplication.feature.groups.GroupDetails
 import com.example.myapplication.feature.groups.GroupExpenseItem
 import com.example.myapplication.feature.groups.GroupMember
-import com.example.myapplication.data.model.GroupSummary
 import com.example.myapplication.feature.notifications.NotificationItem
 import com.example.myapplication.feature.profile.UserProfile
 import com.example.myapplication.ui.Format

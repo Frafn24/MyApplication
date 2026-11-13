@@ -6,9 +6,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-data class ManageMembersUiState(
-    val members: List<GroupMember> = emptyList(),
-)
+data class ManageMembersUiState(val members: List<GroupMember> = emptyList())
 
 /** Scaffold ViewModel; feature logic is added when ManageMembersScreen is implemented. */
 class ManageMembersViewModel : ViewModel() {

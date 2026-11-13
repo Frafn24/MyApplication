@@ -19,6 +19,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -33,14 +34,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.myapplication.data.model.GroupSummary
 import com.example.myapplication.ui.components.StatusMessage
-import androidx.compose.material3.CircularProgressIndicator
 
 private val CardBackground = Color(0xFFDCE0E6)
 private val ButtonBackground = Color(0xFF4B5563)
 private val AvatarBackground = Color(0xFFE5E7EB)
 private val TextPrimary = Color(0xFF111827)
 private val TextSecondary = Color(0xFF374151)
-
 
 @Composable
 fun GroupsScreen(
@@ -182,4 +181,3 @@ private fun GroupsScreenPreview() {
         onCreateGroup = {}
     )
 }
-

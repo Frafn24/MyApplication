@@ -27,9 +27,11 @@ class MockAuthRepository : AuthRepository {
             Result.failure(IllegalArgumentException("Please check the registration details"))
         }
 
-    override suspend fun sendPasswordReset(email: String): Result<Unit> =
-        if (email.contains("@")) Result.success(Unit)
-        else Result.failure(IllegalArgumentException("Enter a valid email address"))
+    override suspend fun sendPasswordReset(email: String): Result<Unit> = if (email.contains("@")) {
+        Result.success(Unit)
+    } else {
+        Result.failure(IllegalArgumentException("Enter a valid email address"))
+    }
 }
 
 class MockGroupRepository : GroupRepository {

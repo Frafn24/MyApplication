@@ -1,11 +1,19 @@
 package com.example.myapplication.feature.auth
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Email
-import androidx.compose.material3.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
@@ -26,7 +34,7 @@ fun ForgotPasswordScreen(
     onEmailChanged: (String) -> Unit,
     onBack: () -> Unit,
     onSendEmail: () -> Unit,
-    onEmailSent: () -> Unit,
+    onEmailSent: () -> Unit
 ) {
     LaunchedEffect(uiState.emailSent) {
         if (uiState.emailSent) onEmailSent()
@@ -58,8 +66,12 @@ fun ForgotPasswordScreen(
             Spacer(Modifier.height(24.dp))
 
             AuthTextField(
-                "Enter Email", uiState.email, onEmailChanged, "Enter email",
-                Icons.Default.Email, keyboardType = KeyboardType.Email
+                "Enter Email",
+                uiState.email,
+                onEmailChanged,
+                "Enter email",
+                Icons.Default.Email,
+                keyboardType = KeyboardType.Email
             )
 
             Spacer(Modifier.height(32.dp))
@@ -72,7 +84,8 @@ fun ForgotPasswordScreen(
                 "Send Email",
                 onClick = onSendEmail,
                 enabled = AuthValidation.isValidEmail(uiState.email) &&
-                    !uiState.isLoading)
+                    !uiState.isLoading
+            )
         }
         Spacer(Modifier.height(96.dp))
     }

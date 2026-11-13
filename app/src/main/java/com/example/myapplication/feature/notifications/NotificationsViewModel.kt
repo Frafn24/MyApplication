@@ -6,9 +6,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-data class NotificationsUiState(
-    val notifications: List<AppNotification> = emptyList(),
-)
+data class NotificationsUiState(val notifications: List<AppNotification> = emptyList())
 
 /** Scaffold ViewModel; feature logic is added when NotificationsScreen is implemented. */
 class NotificationsViewModel : ViewModel() {

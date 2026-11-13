@@ -11,7 +11,7 @@ data class GroupDetailsUiState(
     val groupName: String = "",
     val members: List<GroupMember> = emptyList(),
     val expenses: List<Expense> = emptyList(),
-    val balanceText: String = "",
+    val balanceText: String = ""
 )
 
 /** Scaffold ViewModel; feature logic is added when GroupDetailsScreen is implemented. */

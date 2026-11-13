@@ -9,7 +9,7 @@ data class AddExpenseUiState(
     val title: String = "",
     val amount: String = "",
     val paidBy: String = "You",
-    val selectedMembers: Set<String> = emptySet(),
+    val selectedMembers: Set<String> = emptySet()
 )
 
 /** Scaffold ViewModel; feature logic is added when AddExpenseScreen is implemented. */
@@ -17,9 +17,15 @@ class AddExpenseViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(AddExpenseUiState())
     val uiState: StateFlow<AddExpenseUiState> = _uiState.asStateFlow()
 
-    fun updateTitle(value: String) { _uiState.value = _uiState.value.copy(title = value) }
-    fun updateAmount(value: String) { _uiState.value = _uiState.value.copy(amount = value) }
-    fun updatePaidBy(value: String) { _uiState.value = _uiState.value.copy(paidBy = value) }
+    fun updateTitle(value: String) {
+        _uiState.value = _uiState.value.copy(title = value)
+    }
+    fun updateAmount(value: String) {
+        _uiState.value = _uiState.value.copy(amount = value)
+    }
+    fun updatePaidBy(value: String) {
+        _uiState.value = _uiState.value.copy(paidBy = value)
+    }
 
     fun toggleMember(member: String) {
         val selected = _uiState.value.selectedMembers.toMutableSet()

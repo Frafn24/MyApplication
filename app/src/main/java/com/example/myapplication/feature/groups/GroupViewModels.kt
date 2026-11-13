@@ -12,14 +12,16 @@ import kotlinx.coroutines.launch
 data class GroupsUiState(
     val groups: List<GroupSummary> = emptyList(),
     val isLoading: Boolean = false,
-    val errorMessage: String? = null,
+    val errorMessage: String? = null
 )
 
 class GroupsViewModel(private val groupRepository: GroupRepository) : ViewModel() {
     private val _uiState = MutableStateFlow(GroupsUiState())
     val uiState: StateFlow<GroupsUiState> = _uiState.asStateFlow()
 
-    init { loadGroups() }
+    init {
+        loadGroups()
+    }
 
     fun loadGroups() {
         viewModelScope.launch {
@@ -27,7 +29,7 @@ class GroupsViewModel(private val groupRepository: GroupRepository) : ViewModel(
             val result = groupRepository.getGroups()
             _uiState.value = result.fold(
                 onSuccess = { GroupsUiState(groups = it) },
-                onFailure = { GroupsUiState(errorMessage = it.message) },
+                onFailure = { GroupsUiState(errorMessage = it.message) }
             )
         }
     }

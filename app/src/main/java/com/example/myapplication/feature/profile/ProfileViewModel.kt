@@ -6,9 +6,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-data class ProfileUiState(
-    val profile: User? = null,
-)
+data class ProfileUiState(val profile: User? = null)
 
 /** Scaffold ViewModel; feature logic is added when ProfileScreen is implemented. */
 class ProfileViewModel : ViewModel() {

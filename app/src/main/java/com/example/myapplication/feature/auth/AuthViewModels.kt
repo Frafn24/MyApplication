@@ -13,7 +13,7 @@ data class LoginUiState(
     val password: String = "",
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
-    val loginSuccessful: Boolean = false,
+    val loginSuccessful: Boolean = false
 )
 
 class LoginViewModel(private val repository: AuthRepository) : ViewModel() {
@@ -39,7 +39,7 @@ class LoginViewModel(private val repository: AuthRepository) : ViewModel() {
             _uiState.value = state.copy(isLoading = true, errorMessage = null)
             _uiState.value = repository.login(state.email, state.password).fold(
                 onSuccess = { state.copy(isLoading = false, loginSuccessful = true) },
-                onFailure = { state.copy(isLoading = false, errorMessage = it.message) },
+                onFailure = { state.copy(isLoading = false, errorMessage = it.message) }
             )
         }
     }
@@ -54,23 +54,38 @@ data class SignUpUiState(
     val acceptNews: Boolean = false,
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
-    val signUpSuccessful: Boolean = false,
+    val signUpSuccessful: Boolean = false
 ) {
     val canSubmit: Boolean
-        get() = name.isNotBlank() && email.contains("@") && password.length >= 6 &&
-            password == confirmPassword && acceptTerms
+        get() = name.isNotBlank() &&
+            email.contains("@") &&
+            password.length >= 6 &&
+            password == confirmPassword &&
+            acceptTerms
 }
 
 class SignUpViewModel(private val repository: AuthRepository) : ViewModel() {
     private val _uiState = MutableStateFlow(SignUpUiState())
     val uiState: StateFlow<SignUpUiState> = _uiState.asStateFlow()
 
-    fun updateName(value: String) { _uiState.value = _uiState.value.copy(name = value) }
-    fun updateEmail(value: String) { _uiState.value = _uiState.value.copy(email = value) }
-    fun updatePassword(value: String) { _uiState.value = _uiState.value.copy(password = value) }
-    fun updateConfirmPassword(value: String) { _uiState.value = _uiState.value.copy(confirmPassword = value) }
-    fun updateAcceptTerms(value: Boolean) { _uiState.value = _uiState.value.copy(acceptTerms = value) }
-    fun updateAcceptNews(value: Boolean) { _uiState.value = _uiState.value.copy(acceptNews = value) }
+    fun updateName(value: String) {
+        _uiState.value = _uiState.value.copy(name = value)
+    }
+    fun updateEmail(value: String) {
+        _uiState.value = _uiState.value.copy(email = value)
+    }
+    fun updatePassword(value: String) {
+        _uiState.value = _uiState.value.copy(password = value)
+    }
+    fun updateConfirmPassword(value: String) {
+        _uiState.value = _uiState.value.copy(confirmPassword = value)
+    }
+    fun updateAcceptTerms(value: Boolean) {
+        _uiState.value = _uiState.value.copy(acceptTerms = value)
+    }
+    fun updateAcceptNews(value: Boolean) {
+        _uiState.value = _uiState.value.copy(acceptNews = value)
+    }
 
     fun signUp() {
         val state = _uiState.value
@@ -83,7 +98,7 @@ class SignUpViewModel(private val repository: AuthRepository) : ViewModel() {
             _uiState.value = state.copy(isLoading = true, errorMessage = null)
             _uiState.value = repository.register(state.name, state.email, state.password).fold(
                 onSuccess = { state.copy(isLoading = false, signUpSuccessful = true) },
-                onFailure = { state.copy(isLoading = false, errorMessage = it.message) },
+                onFailure = { state.copy(isLoading = false, errorMessage = it.message) }
             )
         }
     }
@@ -93,7 +108,7 @@ data class ForgotPasswordUiState(
     val email: String = "",
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
-    val emailSent: Boolean = false,
+    val emailSent: Boolean = false
 )
 
 class ForgotPasswordViewModel(private val repository: AuthRepository) : ViewModel() {
@@ -115,7 +130,7 @@ class ForgotPasswordViewModel(private val repository: AuthRepository) : ViewMode
             _uiState.value = state.copy(isLoading = true)
             _uiState.value = repository.sendPasswordReset(state.email).fold(
                 onSuccess = { state.copy(isLoading = false, emailSent = true) },
-                onFailure = { state.copy(isLoading = false, errorMessage = it.message) },
+                onFailure = { state.copy(isLoading = false, errorMessage = it.message) }
             )
         }
     }
