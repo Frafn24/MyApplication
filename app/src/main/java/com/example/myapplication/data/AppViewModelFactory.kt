@@ -15,7 +15,9 @@ class AppViewModelFactory(private val container: AppContainer) : ViewModelProvid
         modelClass.isAssignableFrom(
             ForgotPasswordViewModel::class.java
         ) -> ForgotPasswordViewModel(container.authRepository)
-        modelClass.isAssignableFrom(GroupsViewModel::class.java) -> GroupsViewModel(container.groupRepository)
+        modelClass.isAssignableFrom(
+            GroupsViewModel::class.java
+        ) -> GroupsViewModel(container.groupRepository, container.syncCoordinator)
         else -> error("Unknown ViewModel class: ${modelClass.name}")
     } as T
 }

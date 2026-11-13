@@ -19,6 +19,8 @@ import com.example.myapplication.data.repository.RoomExpenseRepository
 import com.example.myapplication.data.repository.RoomGroupRepository
 import com.example.myapplication.data.repository.RoomNotificationRepository
 import com.example.myapplication.data.repository.RoomProfileRepository
+import com.example.myapplication.data.repository.SupabaseAuthRepository
+import com.example.myapplication.data.sync.SyncCoordinator
 import com.example.myapplication.data.sync.WorkManagerSyncScheduler
 
 class AppContainer(
@@ -27,13 +29,15 @@ class AppContainer(
     val expenseRepository: ExpenseRepository = MockExpenseRepository(),
     val balanceRepository: BalanceRepository = MockBalanceRepository(),
     val notificationRepository: NotificationRepository = MockNotificationRepository(),
-    val profileRepository: ProfileRepository = MockProfileRepository()
+    val profileRepository: ProfileRepository = MockProfileRepository(),
+    val syncCoordinator: SyncCoordinator? = null
 ) {
     companion object {
         fun withRoom(context: Context): AppContainer {
             val database = AppDatabase.getInstance(context)
 
             return AppContainer(
+                authRepository = SupabaseAuthRepository(),
                 groupRepository = RoomGroupRepository(database),
                 expenseRepository = RoomExpenseRepository(
                     database,
@@ -41,7 +45,8 @@ class AppContainer(
                 ),
                 balanceRepository = RoomBalanceRepository(database),
                 notificationRepository = RoomNotificationRepository(database),
-                profileRepository = RoomProfileRepository(database)
+                profileRepository = RoomProfileRepository(database),
+                syncCoordinator = SyncCoordinator(database)
             )
         }
     }

@@ -10,7 +10,9 @@ import com.example.myapplication.notifications.AppNotifications
 import com.example.myapplication.ui.theme.MyApplicationTheme
 
 class MainActivity : ComponentActivity() {
-    private val appContainer = AppContainer()
+    private val appContainer by lazy {
+        AppContainer.withRoom(applicationContext)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

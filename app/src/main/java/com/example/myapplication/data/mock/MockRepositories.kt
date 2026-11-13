@@ -16,8 +16,13 @@ import kotlinx.coroutines.flow.flowOf
 
 /** Temporary mock repositories used until a real data source is connected. */
 class MockAuthRepository : AuthRepository {
+    private var signedIn = false
+
+    override suspend fun isSignedIn(): Boolean = signedIn
+
     override suspend fun login(email: String, password: String): Result<User> =
         if (email.isNotBlank() && password.isNotBlank()) {
+            signedIn = true
             Result.success(User("current-user", "John Doe", email))
         } else {
             Result.failure(IllegalArgumentException("Email and password are required"))
@@ -25,6 +30,7 @@ class MockAuthRepository : AuthRepository {
 
     override suspend fun register(name: String, email: String, password: String): Result<User> =
         if (name.isNotBlank() && email.contains("@") && password.length >= 6) {
+            signedIn = true
             Result.success(User("current-user", name, email))
         } else {
             Result.failure(IllegalArgumentException("Please check the registration details"))

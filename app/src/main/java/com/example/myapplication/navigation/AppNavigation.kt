@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavBackStackEntry
@@ -39,6 +40,7 @@ import com.example.myapplication.data.AppViewModelFactory
 import com.example.myapplication.data.remote.AppRepository
 import com.example.myapplication.data.remote.runCatchingCancellable
 import com.example.myapplication.data.remote.toUserMessage
+import com.example.myapplication.data.repository.AuthRepository
 import com.example.myapplication.feature.auth.ForgotPasswordScreen
 import com.example.myapplication.feature.auth.ForgotPasswordViewModel
 import com.example.myapplication.feature.auth.LoginScreen
@@ -103,7 +105,7 @@ fun AppNavigation(container: AppContainer) {
                 .consumeWindowInsets(innerPadding)
                 .imePadding()
         ) {
-            AppNavHost(navController, factory)
+            AppNavHost(navController, factory, container.authRepository)
         }
     }
 }
@@ -126,14 +128,14 @@ private fun NavHostController.openTab(route: String) {
 }
 
 @Composable
-private fun AppNavHost(navController: NavHostController, factory: AppViewModelFactory) {
+private fun AppNavHost(navController: NavHostController, factory: AppViewModelFactory, authRepository: AuthRepository) {
     NavHost(
         navController = navController,
         startDestination = Routes.Splash
     ) {
         composable(Routes.Splash) {
             SplashScreen(
-                checkSignedIn = AppRepository::isSignedIn,
+                checkSignedIn = authRepository::isSignedIn,
                 onFinished = { isSignedIn ->
                     // Not a tap, and must also happen if the app was in the background meanwhile.
                     navController.navigate(if (isSignedIn) Routes.Groups else Routes.Login) {
@@ -210,6 +212,11 @@ private fun AppNavHost(navController: NavHostController, factory: AppViewModelFa
         composable(Routes.Groups) { entry ->
             val groupsViewModel: GroupsViewModel = viewModel(factory = factory)
             val uiState by groupsViewModel.uiState.collectAsStateWithLifecycle()
+
+            LifecycleResumeEffect(Unit) {
+                groupsViewModel.loadGroups()
+                onPauseOrDispose { }
+            }
 
             GroupsScreen(
                 groups = uiState.groups,
