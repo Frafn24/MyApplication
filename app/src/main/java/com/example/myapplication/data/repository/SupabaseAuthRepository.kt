@@ -6,6 +6,8 @@ import com.example.myapplication.data.remote.AppRepository
 class SupabaseAuthRepository : AuthRepository {
     override suspend fun isSignedIn(): Boolean = AppRepository.isSignedIn()
 
+    override fun currentUserIdOrNull(): String? = AppRepository.currentUserIdOrNull()
+
     override suspend fun login(email: String, password: String): Result<User> = runCatching {
         AppRepository.signIn(email, password)
         User("current-user", email, email)

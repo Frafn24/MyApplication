@@ -16,7 +16,7 @@ import androidx.room.migration.Migration
         NotificationEntity::class,
         SyncMetadataEntity::class
     ],
-    version = 3,
+    version = 5,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -27,6 +27,17 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun notificationDao(): NotificationDao
     abstract fun syncMetadataDao(): SyncMetadataDao
 
+    /** Removes everything cached for the signed-in user, e.g. on sign-out. */
+    suspend fun clearUserData() {
+        syncMetadataDao().clear()
+        expenseDao().clear()
+        groupDao().clearMembers()
+        groupDao().clear()
+        userDao().clear()
+        balanceDao().clear()
+        notificationDao().clear()
+    }
+
     companion object {
         @Volatile
         private var instance: AppDatabase? = null
@@ -36,7 +47,12 @@ abstract class AppDatabase : RoomDatabase() {
                 context.applicationContext,
                 AppDatabase::class.java,
                 "my_application.db"
-            ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { instance = it }
+            ).addMigrations(
+                MIGRATION_1_2,
+                MIGRATION_2_3,
+                MIGRATION_3_4,
+                MIGRATION_4_5
+            ).build().also { instance = it }
         }
 
         private val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -83,6 +99,24 @@ abstract class AppDatabase : RoomDatabase() {
                 )
                 database.execSQL("DROP TABLE expenses")
                 database.execSQL("ALTER TABLE expenses_new RENAME TO expenses")
+            }
+        }
+
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(database: androidx.sqlite.db.SupportSQLiteDatabase) {
+                database.execSQL(
+                    """
+            ALTER TABLE sync_metadata
+            ADD COLUMN operation TEXT NOT NULL DEFAULT 'create'
+                    """.trimIndent()
+                )
+            }
+        }
+
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE expenses ADD COLUMN paidByName TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE expenses ADD COLUMN myShareInCents INTEGER")
             }
         }
     }

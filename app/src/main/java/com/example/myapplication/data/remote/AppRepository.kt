@@ -1,6 +1,7 @@
 package com.example.myapplication.data.remote
 
 import com.example.myapplication.data.model.GroupSummary
+import com.example.myapplication.data.model.RemoteExpense
 import com.example.myapplication.feature.balances.BalanceDirection
 import com.example.myapplication.feature.balances.BalanceEntry
 import com.example.myapplication.feature.balances.GroupBalances
@@ -26,6 +27,7 @@ import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import java.io.IOException
+import kotlin.math.roundToLong
 import kotlin.time.Clock
 import kotlin.time.Instant
 import kotlinx.coroutines.CancellationException
@@ -87,7 +89,8 @@ object AppRepository {
         }
     }
 
-    private fun myUserId(): String = checkNotNull(client.auth.currentUserOrNull()?.id) { "You are not signed in." }
+    fun currentUserIdOrNull(): String? = client.auth.currentUserOrNull()?.id
+    private fun myUserId(): String = checkNotNull(currentUserIdOrNull()) { "You are not signed in." }
 
     // --- Groups ---
 
@@ -165,6 +168,20 @@ object AppRepository {
     suspend fun getExpenseMembers(groupId: String): List<ExpenseMember> = getGroupMembers(groupId)
         .sortedByDescending { it.isMe }
         .map { ExpenseMember(it.id, if (it.isMe) "You" else it.name) }
+
+    suspend fun getGroupExpenses(groupId: String): List<RemoteExpense> =
+        client.postgrest.rpc("get_group_expenses", buildJsonObject { put("p_group_id", groupId) })
+            .decodeList<GroupExpenseRow>()
+            .map {
+                RemoteExpense(
+                    id = it.id,
+                    description = it.description,
+                    amountInCents = (it.amount * 100).roundToLong(),
+                    paidBy = it.paidBy,
+                    paidByName = it.paidByName,
+                    myShareInCents = (it.myShare * 100).roundToLong()
+                )
+            }
 
     /** Saves the expense split equally between [ExpenseDraft.splitBetween]. Returns its id. */
     suspend fun createExpense(groupId: String, draft: ExpenseDraft): String = client.postgrest.rpc(

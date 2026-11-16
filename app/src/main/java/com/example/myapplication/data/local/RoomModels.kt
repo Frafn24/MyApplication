@@ -33,6 +33,9 @@ data class ExpenseEntity(
     val amountInCents: Long,
     val paidBy: String,
     val splitBetween: String,
+    @ColumnInfo(defaultValue = "''")
+    val paidByName: String = "",
+    val myShareInCents: Long? = null,
     @ColumnInfo(defaultValue = "'SYNCED'")
     val syncStatus: String = SyncStatus.SYNCED
 )

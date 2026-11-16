@@ -2,6 +2,7 @@ package com.example.myapplication.data
 
 import android.content.Context
 import com.example.myapplication.data.local.AppDatabase
+import com.example.myapplication.data.local.LocalUserData
 import com.example.myapplication.data.mock.MockAuthRepository
 import com.example.myapplication.data.mock.MockBalanceRepository
 import com.example.myapplication.data.mock.MockExpenseRepository
@@ -30,22 +31,31 @@ class AppContainer(
     val balanceRepository: BalanceRepository = MockBalanceRepository(),
     val notificationRepository: NotificationRepository = MockNotificationRepository(),
     val profileRepository: ProfileRepository = MockProfileRepository(),
+    val localUserData: LocalUserData? = null,
     val syncCoordinator: SyncCoordinator? = null
 ) {
     companion object {
         fun withRoom(context: Context): AppContainer {
             val database = AppDatabase.getInstance(context)
+            val authRepository = SupabaseAuthRepository()
 
             return AppContainer(
-                authRepository = SupabaseAuthRepository(),
-                groupRepository = RoomGroupRepository(database),
+                authRepository = authRepository,
+                groupRepository = RoomGroupRepository(
+                    database = database,
+                    currentUserId = { authRepository.currentUserIdOrNull() },
+                    syncScheduler = WorkManagerSyncScheduler(context)
+                ),
                 expenseRepository = RoomExpenseRepository(
                     database,
                     WorkManagerSyncScheduler(context)
                 ),
                 balanceRepository = RoomBalanceRepository(database),
                 notificationRepository = RoomNotificationRepository(database),
-                profileRepository = RoomProfileRepository(database),
+                profileRepository = RoomProfileRepository(database) {
+                    authRepository.currentUserIdOrNull()
+                },
+                localUserData = LocalUserData(database, context.applicationContext),
                 syncCoordinator = SyncCoordinator(database)
             )
         }

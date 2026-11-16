@@ -12,6 +12,7 @@ data class SyncMetadataEntity(
     val entityId: String,
     val remoteId: String? = null,
     val state: String = SyncState.SYNCED,
+    val operation: String = SyncOperation.CREATE,
     val localUpdatedAt: Long = 0L,
     val serverUpdatedAt: Long? = null,
     val isDeleted: Boolean = false
@@ -22,6 +23,13 @@ object SyncState {
     const val PENDING_UPLOAD = "pending_upload"
     const val PENDING_DELETE = "pending_delete"
     const val CONFLICT = "conflict"
+    const val FAILED = "failed"
+}
+
+object SyncOperation {
+    const val CREATE = "create"
+    const val UPDATE = "update"
+    const val DELETE = "delete"
 }
 
 object SyncStatus {

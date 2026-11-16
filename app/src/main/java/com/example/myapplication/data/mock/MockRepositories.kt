@@ -11,6 +11,8 @@ import com.example.myapplication.data.repository.ExpenseRepository
 import com.example.myapplication.data.repository.GroupRepository
 import com.example.myapplication.data.repository.NotificationRepository
 import com.example.myapplication.data.repository.ProfileRepository
+import com.example.myapplication.feature.groups.GroupDetails
+import com.example.myapplication.feature.groups.GroupExpenseItem
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 
@@ -19,6 +21,8 @@ class MockAuthRepository : AuthRepository {
     private var signedIn = false
 
     override suspend fun isSignedIn(): Boolean = signedIn
+
+    override fun currentUserIdOrNull(): String? = if (signedIn) "current-user" else null
 
     override suspend fun login(email: String, password: String): Result<User> =
         if (email.isNotBlank() && password.isNotBlank()) {
@@ -49,20 +53,54 @@ class MockGroupRepository : GroupRepository {
 
     override suspend fun getGroups(): Result<List<GroupSummary>> = Result.success(groups.toList())
 
+    override suspend fun getDetails(groupId: String): Result<GroupDetails> = Result.success(
+        GroupDetails(
+            id = groupId,
+            name = groups.firstOrNull { it.id == groupId }?.name.orEmpty(),
+            description = "",
+            balanceText = groups.firstOrNull { it.id == groupId }?.balanceText.orEmpty(),
+            expenses = MockData.expenses
+                .filter { it.groupId == groupId }
+                .map {
+                    GroupExpenseItem(
+                        id = it.id,
+                        title = it.title,
+                        amountText = "${it.amountInCents / 100} DKK",
+                        detailText = "${it.paidBy} paid"
+                    )
+                }
+        )
+    )
+
     override suspend fun getMembers(groupId: String): Result<List<GroupMember>> =
         Result.success(members[groupId]?.toList().orEmpty())
 
-    override suspend fun createGroup(title: String, description: String): Result<GroupSummary> {
+    override suspend fun createGroup(
+        title: String,
+        description: String,
+        invitedEmails: List<String>
+    ): Result<GroupSummary> {
         val group = GroupSummary((groups.size + 1).toString(), title, 1, "No balance yet")
         groups += group
         members[group.id] = mutableListOf(GroupMember("current-user", "You", isAdmin = true))
         return Result.success(group)
     }
 
-    override suspend fun addMember(groupId: String, name: String): Result<GroupMember> {
-        val member = GroupMember("member-${System.currentTimeMillis()}", name)
+    override suspend fun inviteMember(groupId: String, email: String): Result<Unit> {
+        val member = GroupMember("member-${System.currentTimeMillis()}", email)
         members.getOrPut(groupId) { mutableListOf() }.add(member)
-        return Result.success(member)
+        return Result.success(Unit)
+    }
+
+    override suspend fun removeMember(groupId: String, userId: String): Result<Unit> {
+        members[groupId]?.removeAll { it.id == userId }
+        return Result.success(Unit)
+    }
+
+    override fun observeMembers(groupId: String): Flow<List<GroupMember>> = flowOf(members[groupId]?.toList().orEmpty())
+    override suspend fun cancelInvite(groupId: String, email: String): Result<Unit> {
+        members[groupId]?.removeAll { it.name == email }
+        return Result.success(Unit)
     }
 }
 

@@ -39,11 +39,11 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.myapplication.data.AppContainer
 import com.example.myapplication.data.AppViewModelFactory
+import com.example.myapplication.data.model.Expense
 import com.example.myapplication.data.network.NetworkMonitor
 import com.example.myapplication.data.remote.AppRepository
 import com.example.myapplication.data.remote.runCatchingCancellable
 import com.example.myapplication.data.remote.toUserMessage
-import com.example.myapplication.data.repository.AuthRepository
 import com.example.myapplication.feature.auth.ForgotPasswordScreen
 import com.example.myapplication.feature.auth.ForgotPasswordViewModel
 import com.example.myapplication.feature.auth.LoginScreen
@@ -53,9 +53,11 @@ import com.example.myapplication.feature.auth.SignUpViewModel
 import com.example.myapplication.feature.balances.BalancesScreen
 import com.example.myapplication.feature.expenses.AddExpenseScreen
 import com.example.myapplication.feature.expenses.ExpenseDetailsScreen
+import com.example.myapplication.feature.expenses.ExpenseMember
 import com.example.myapplication.feature.expenses.SharedExpensesScreen
 import com.example.myapplication.feature.groups.CreateGroupScreen
 import com.example.myapplication.feature.groups.GroupDetailsScreen
+import com.example.myapplication.feature.groups.GroupMember
 import com.example.myapplication.feature.groups.GroupsScreen
 import com.example.myapplication.feature.groups.GroupsViewModel
 import com.example.myapplication.feature.groups.ManageMembersScreen
@@ -66,6 +68,7 @@ import com.example.myapplication.notifications.rememberNotificationPermission
 import com.example.myapplication.ui.components.OfflineBanner
 import com.example.myapplication.ui.components.StatusMessage
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 // isImeVisible: hide the bottom bar while the keyboard is open.
@@ -119,7 +122,7 @@ fun AppNavigation(container: AppContainer) {
                 Box(
                     modifier = Modifier.fillMaxSize().weight(1f)
                 ) {
-                    AppNavHost(navController, factory, container.authRepository)
+                    AppNavHost(navController, factory, container)
                 }
             }
         }
@@ -144,14 +147,22 @@ private fun NavHostController.openTab(route: String) {
 }
 
 @Composable
-private fun AppNavHost(navController: NavHostController, factory: AppViewModelFactory, authRepository: AuthRepository) {
+private fun AppNavHost(navController: NavHostController, factory: AppViewModelFactory, container: AppContainer) {
     NavHost(
         navController = navController,
         startDestination = Routes.Splash
     ) {
         composable(Routes.Splash) {
             SplashScreen(
-                checkSignedIn = authRepository::isSignedIn,
+                checkSignedIn = {
+                    val signedIn = container.authRepository.isSignedIn()
+                    if (signedIn) {
+                        container.localUserData?.ensureOwner(
+                            container.authRepository.currentUserIdOrNull()
+                        )
+                    }
+                    signedIn
+                },
                 onFinished = { isSignedIn ->
                     // Not a tap, and must also happen if the app was in the background meanwhile.
                     navController.navigate(if (isSignedIn) Routes.Groups else Routes.Login) {
@@ -259,8 +270,10 @@ private fun AppNavHost(navController: NavHostController, factory: AppViewModelFa
                 onProfileClick = { navController.navigateFrom(entry, Routes.Profile) },
                 onCreateGroup = { title, description, members ->
                     request.run {
-                        AppRepository.createGroup(title, description, members)
-                        // Back to Groups (as in the navigation model), which shows the new group.
+                        container.groupRepository
+                            .createGroup(title, description, members)
+                            .getOrThrow()
+                        // Back to Groups, which shows the group from Room right away.
                         navController.popFrom(entry)
                     }
                 },
@@ -270,7 +283,11 @@ private fun AppNavHost(navController: NavHostController, factory: AppViewModelFa
         }
         composable(Routes.GroupDetails) { entry ->
             val groupId = entry.requireArg(Routes.GROUP_ID)
-            val group by loadFromDatabase { AppRepository.getGroupDetails(groupId) }
+            val group by loadFromDatabase {
+                // Best effort: refresh from the server; offline we show the Room copy.
+                container.syncCoordinator?.syncGroup(groupId)
+                container.groupRepository.getDetails(groupId).getOrThrow()
+            }
             LoadedScreen(group) { loaded ->
                 GroupDetailsScreen(
                     group = loaded,
@@ -283,34 +300,67 @@ private fun AppNavHost(navController: NavHostController, factory: AppViewModelFa
         }
         composable(Routes.ManageMembers) { entry ->
             val groupId = entry.requireArg(Routes.GROUP_ID)
-            var reload by remember { mutableIntStateOf(0) }
-            val members by loadFromDatabase(reload) { AppRepository.getGroupMembers(groupId) }
-            val request = rememberRequest()
-            LoadedScreen(members) { loaded ->
-                ManageMembersScreen(
-                    members = loaded,
-                    onBack = { navController.popFrom(entry) },
-                    onProfileClick = { navController.navigateFrom(entry, Routes.Profile) },
-                    onAddMember = { email ->
-                        request.run {
-                            AppRepository.addGroupMember(groupId, email)
-                            reload++
+            val me = container.authRepository.currentUserIdOrNull()
+            val membersFlow = remember(groupId, me) {
+                container.groupRepository
+                    .observeMembers(groupId)
+                    .map { list ->
+                        list.map {
+                            GroupMember(
+                                it.id,
+                                it.name,
+                                it.isAdmin,
+                                isMe = it.id == me,
+                                isPending = it.isPending,
+                                isFailed = it.isFailed
+                            )
                         }
-                    },
-                    onRemoveMember = { member ->
-                        request.run {
-                            AppRepository.removeGroupMember(groupId, member.id)
-                            reload++
-                        }
-                    },
-                    isLoading = request.isLoading,
-                    message = request.message ?: members.error
-                )
+                    }
             }
+            val members by membersFlow.collectAsStateWithLifecycle(initialValue = emptyList())
+            LaunchedEffect(groupId) {
+                // Best effort: refresh from the server; offline we show the Room copy.
+                container.syncCoordinator?.syncGroup(groupId)
+            }
+
+            val request = rememberRequest()
+            ManageMembersScreen(
+                members = members,
+                onBack = { navController.popFrom(entry) },
+                onProfileClick = { navController.navigateFrom(entry, Routes.Profile) },
+                onAddMember = { email ->
+                    request.run {
+                        container.groupRepository
+                            .inviteMember(groupId, email)
+                            .getOrThrow()
+                    }
+                },
+                onRemoveMember = { member ->
+                    request.run {
+                        container.groupRepository
+                            .removeMember(groupId, member.id)
+                            .getOrThrow()
+                    }
+                },
+                onCancelInvite = { member ->
+                    request.run {
+                        container.groupRepository.cancelInvite(groupId, member.name).getOrThrow()
+                    }
+                },
+                isLoading = request.isLoading,
+                message = request.message
+            )
         }
         composable(Routes.AddExpense) { entry ->
             val groupId = entry.requireArg(Routes.GROUP_ID)
-            val members by loadFromDatabase { AppRepository.getExpenseMembers(groupId) }
+            val me = container.authRepository.currentUserIdOrNull()
+            val members by loadFromDatabase {
+                // Best effort: refresh from the server; offline we show the Room copy.
+                container.syncCoordinator?.syncGroup(groupId)
+                container.groupRepository.getMembers(groupId).getOrThrow()
+                    .sortedByDescending { it.id == me }
+                    .map { ExpenseMember(it.id, if (it.id == me) "You" else it.name) }
+            }
             val request = rememberRequest()
             LoadedScreen(members) { loaded ->
                 AddExpenseScreen(
@@ -320,7 +370,21 @@ private fun AppNavHost(navController: NavHostController, factory: AppViewModelFa
                     onBack = { navController.popFrom(entry) },
                     onAddExpense = { draft ->
                         request.run {
-                            AppRepository.createExpense(groupId, draft)
+                            val expense = Expense(
+                                id = "expense-${System.currentTimeMillis()}",
+                                groupId = groupId,
+                                title = draft.title,
+                                amountInCents = draft.amount
+                                    .movePointRight(2)
+                                    .longValueExact(),
+                                paidBy = draft.paidBy,
+                                splitBetween = draft.splitBetween
+                            )
+
+                            container.expenseRepository
+                                .addExpense(expense)
+                                .getOrThrow()
+
                             navController.popFrom(entry)
                         }
                     },
@@ -448,6 +512,7 @@ private fun AppNavHost(navController: NavHostController, factory: AppViewModelFa
                     },
                     onSignOut = {
                         save.run {
+                            container.localUserData?.clear()
                             AppRepository.signOut()
                             navController.navigateFrom(entry, Routes.Login) {
                                 popUpTo(navController.graph.id) { inclusive = true }
