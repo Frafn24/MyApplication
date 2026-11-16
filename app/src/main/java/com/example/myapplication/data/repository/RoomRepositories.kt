@@ -604,6 +604,8 @@ class RoomNotificationRepository(
         it.map(NotificationEntity::toModel)
     }
 
+    override fun observeUnreadCount(): Flow<Int> = dao.observeUnreadCount()
+
     override suspend fun markNotificationRead(id: String): Result<Unit> = runCatching {
         dao.markRead(id)
         syncDao.upsert(

@@ -58,7 +58,11 @@ class AppContainer(
                 },
                 localUserData = LocalUserData(database, context.applicationContext),
                 syncCoordinator = SyncCoordinator(database)
-            )
+            ).also {
+                // Keeps the cache fresh in the background, so badges and system
+                // notifications appear without opening each screen.
+                WorkManagerSyncScheduler(context).enqueuePeriodicSync()
+            }
         }
     }
 }

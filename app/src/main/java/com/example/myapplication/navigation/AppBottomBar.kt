@@ -6,6 +6,7 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -40,9 +41,15 @@ enum class BottomTab(val route: String, val label: String, val icon: ImageVector
 /**
  * Bottom bar shown on every screen after sign-in. [selected] is highlighted with a
  * dark icon, bold label and a grey pill behind the icon; null highlights nothing.
+ * [unreadAlerts] shows a badge on the Alerts tab.
  */
 @Composable
-fun AppBottomBar(selected: BottomTab?, onTabClick: (BottomTab) -> Unit, modifier: Modifier = Modifier) {
+fun AppBottomBar(
+    selected: BottomTab?,
+    onTabClick: (BottomTab) -> Unit,
+    modifier: Modifier = Modifier,
+    unreadAlerts: Int = 0
+) {
     Column(modifier) {
         HorizontalDivider(color = Divider)
         NavigationBar(containerColor = Color.White) {
@@ -51,7 +58,19 @@ fun AppBottomBar(selected: BottomTab?, onTabClick: (BottomTab) -> Unit, modifier
                 NavigationBarItem(
                     selected = isSelected,
                     onClick = { onTabClick(tab) },
-                    icon = { Icon(tab.icon, contentDescription = null) },
+                    icon = {
+                        if (tab == BottomTab.Alerts && unreadAlerts > 0) {
+                            BadgedBox(
+                                badge = {
+                                    Text(if (unreadAlerts > 9) "9+" else unreadAlerts.toString())
+                                }
+                            ) {
+                                Icon(tab.icon, contentDescription = null)
+                            }
+                        } else {
+                            Icon(tab.icon, contentDescription = null)
+                        }
+                    },
                     label = {
                         Text(
                             text = tab.label,

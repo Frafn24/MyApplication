@@ -11,6 +11,7 @@ import com.example.myapplication.data.local.SyncState
 import com.example.myapplication.data.local.SyncStatus
 import com.example.myapplication.data.remote.AppRepository
 import com.example.myapplication.feature.expenses.ExpenseDraft
+import com.example.myapplication.notifications.SystemNotifier
 import java.math.BigDecimal
 import kotlinx.coroutines.CancellationException
 
@@ -288,6 +289,9 @@ class SyncWorker(appContext: Context, workerParams: WorkerParameters) : Coroutin
         val coordinator = SyncCoordinator(database)
         coordinator.syncGroups()
         coordinator.syncBalances()
+        coordinator.syncNotifications().getOrNull()?.let {
+            SystemNotifier.postNew(applicationContext, it)
+        }
         groupIds.forEach { coordinator.syncGroup(it) }
     }
 }

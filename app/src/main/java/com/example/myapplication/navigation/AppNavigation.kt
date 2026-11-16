@@ -73,6 +73,7 @@ import com.example.myapplication.feature.notifications.NotificationItem
 import com.example.myapplication.feature.notifications.NotificationsScreen
 import com.example.myapplication.feature.profile.ProfileScreen
 import com.example.myapplication.feature.splash.SplashScreen
+import com.example.myapplication.notifications.SystemNotifier
 import com.example.myapplication.notifications.rememberNotificationPermission
 import com.example.myapplication.ui.components.OfflineBanner
 import com.example.myapplication.ui.components.StatusMessage
@@ -90,6 +91,25 @@ fun AppNavigation(container: AppContainer) {
     val context = LocalContext.current
     val networkMonitor = remember(context) { NetworkMonitor(context) }
     val isOnline by networkMonitor.isOnline.collectAsStateWithLifecycle(initialValue = true)
+
+    // The Alerts badge; updates by itself when rows are marked read or pulled.
+    val unreadAlerts by container.notificationRepository
+        .observeUnreadCount()
+        .collectAsStateWithLifecycle(initialValue = 0)
+
+    // App start and reconnect: pull the news in the background so the badge
+    // and system notifications appear without opening each screen.
+    LaunchedEffect(isOnline) {
+        if (isOnline && container.authRepository.currentUserIdOrNull() != null) {
+            val coordinator = container.syncCoordinator ?: return@LaunchedEffect
+            runCatching { coordinator.syncGroups() }
+            runCatching { coordinator.syncBalances() }
+            runCatching {
+                coordinator.syncNotifications().getOrNull()
+                    ?.let { SystemNotifier.postNew(context, it) }
+            }
+        }
+    }
 
     val currentEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentEntry?.destination?.route
@@ -109,7 +129,8 @@ fun AppNavigation(container: AppContainer) {
             if (showBottomBar) {
                 AppBottomBar(
                     selected = BottomTab.forRoute(currentRoute),
-                    onTabClick = { tab -> navController.openTab(tab.route) }
+                    onTabClick = { tab -> navController.openTab(tab.route) },
+                    unreadAlerts = unreadAlerts
                 )
             }
         }

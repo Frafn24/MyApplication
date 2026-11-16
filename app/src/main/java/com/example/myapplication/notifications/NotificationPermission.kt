@@ -47,7 +47,7 @@ object AppNotifications {
         val channel = NotificationChannel(
             CHANNEL_GROUP_ACTIVITY,
             "Groups and expenses",
-            NotificationManager.IMPORTANCE_DEFAULT
+            NotificationManager.IMPORTANCE_HIGH
         ).apply { description = "New expenses, new group members and payment reminders" }
         context.getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
     }

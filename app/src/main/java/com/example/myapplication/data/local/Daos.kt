@@ -149,6 +149,9 @@ interface NotificationDao {
     @Query("SELECT * FROM notifications ORDER BY createdAtEpochMs DESC")
     fun observeAll(): Flow<List<NotificationEntity>>
 
+    @Query("SELECT COUNT(*) FROM notifications WHERE isUnread = 1")
+    fun observeUnreadCount(): Flow<Int>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(notifications: List<NotificationEntity>)
 

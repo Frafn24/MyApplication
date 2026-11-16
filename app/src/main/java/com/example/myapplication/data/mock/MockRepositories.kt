@@ -221,6 +221,8 @@ class MockNotificationRepository : NotificationRepository {
     override fun observeNotifications(): Flow<List<AppNotification>> =
         kotlinx.coroutines.flow.flowOf(MockData.notifications)
 
+    override fun observeUnreadCount(): Flow<Int> = kotlinx.coroutines.flow.flowOf(2)
+
     override suspend fun markNotificationRead(id: String): Result<Unit> = Result.success(Unit)
 }
 

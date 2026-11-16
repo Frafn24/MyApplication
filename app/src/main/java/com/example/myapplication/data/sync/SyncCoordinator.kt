@@ -193,10 +193,17 @@ class SyncCoordinator(private val database: AppDatabase) {
         if (entities.isNotEmpty()) balanceDao.insertAll(entities)
     }
 
-    /** Pulls notifications into Room. */
-    suspend fun syncNotifications(): Result<Unit> = runCatching {
+    /** Pulls notifications into Room. Returns the ones that arrived with this pull. */
+    suspend fun syncNotifications(): Result<List<NotificationEntity>> = runCatching {
         val remote = AppRepository.getNotifications()
         val notificationDao = database.notificationDao()
+        val syncDao = database.syncMetadataDao()
+
+        // Mark-as-read changes still waiting to be uploaded must not be undone by the pull.
+        val readPendingIds = syncDao.getPending()
+            .filter { it.entityType == "notification" }
+            .map { it.entityId }
+            .toSet()
 
         val entities = remote.map { n ->
             NotificationEntity(
@@ -204,13 +211,23 @@ class SyncCoordinator(private val database: AppDatabase) {
                 title = n.title,
                 message = n.message,
                 createdAtEpochMs = n.createdAtEpochMs,
-                isUnread = n.isUnread,
+                isUnread = n.isUnread && n.id !in readPendingIds,
                 groupId = n.groupId,
                 expenseId = n.expenseId
             )
         }
 
+        // The very first pull is old news, so nothing counts as new then.
+        val previousIds = notificationDao.getAll().map { it.id }.toSet()
+        val newlyArrived = if (previousIds.isEmpty()) {
+            emptyList()
+        } else {
+            entities.filter { it.id !in previousIds && it.isUnread }
+        }
+
         notificationDao.clear()
         if (entities.isNotEmpty()) notificationDao.insertAll(entities)
+
+        newlyArrived
     }
 }
