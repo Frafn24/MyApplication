@@ -11,7 +11,6 @@ import com.example.myapplication.data.local.SyncState
 import com.example.myapplication.data.local.SyncStatus
 import com.example.myapplication.data.remote.AppRepository
 import com.example.myapplication.data.sync.encodeSplits
-import java.time.Instant
 
 class SyncCoordinator(private val database: AppDatabase) {
     /** Pulls the group list into Room. */
@@ -165,6 +164,12 @@ class SyncCoordinator(private val database: AppDatabase) {
         }
     }
 
+    /** Best-effort refresh using the server's group id, e.g. from a cached balance row. */
+    suspend fun syncGroupByRemoteId(remoteGroupId: String): Result<Unit> {
+        val localId = database.syncMetadataDao().getByRemoteId("group", remoteGroupId)?.entityId ?: remoteGroupId
+        return syncGroup(localId)
+    }
+
     /** Pulls balances into Room. */
     suspend fun syncBalances(): Result<Unit> = runCatching {
         val (totalText, groupBalances) = AppRepository.getBalances()
@@ -198,7 +203,7 @@ class SyncCoordinator(private val database: AppDatabase) {
                 id = n.id,
                 title = n.title,
                 message = n.message,
-                createdAtEpochMs = Instant.now().toEpochMilli(), // server doesn't expose epoch ms, approximate
+                createdAtEpochMs = n.createdAtEpochMs,
                 isUnread = n.isUnread,
                 groupId = n.groupId,
                 expenseId = n.expenseId

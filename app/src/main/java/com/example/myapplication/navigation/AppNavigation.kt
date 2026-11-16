@@ -38,8 +38,10 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.myapplication.data.AppContainer
 import com.example.myapplication.data.AppViewModelFactory
+import com.example.myapplication.data.model.AppNotification
 import com.example.myapplication.data.model.BalanceDirection
 import com.example.myapplication.data.model.BalanceEntry
+import com.example.myapplication.data.model.BalancesSummary
 import com.example.myapplication.data.model.Expense
 import com.example.myapplication.data.network.NetworkMonitor
 import com.example.myapplication.data.remote.AppRepository
@@ -58,6 +60,7 @@ import com.example.myapplication.feature.balances.GroupBalances as FeatureGroupB
 import com.example.myapplication.feature.expenses.AddExpenseScreen
 import com.example.myapplication.feature.expenses.ExpenseDetailsScreen
 import com.example.myapplication.feature.expenses.ExpenseMember
+import com.example.myapplication.feature.expenses.SharedExpenses
 import com.example.myapplication.feature.expenses.SharedExpensesScreen
 import com.example.myapplication.feature.groups.CreateGroupScreen
 import com.example.myapplication.feature.groups.GroupDetails
@@ -128,7 +131,7 @@ fun AppNavigation(container: AppContainer) {
                 Box(
                     modifier = Modifier.fillMaxSize().weight(1f)
                 ) {
-                    AppNavHost(navController, factory, container)
+                    AppNavHost(navController, factory, container, isOnline)
                 }
             }
         }
@@ -153,7 +156,12 @@ private fun NavHostController.openTab(route: String) {
 }
 
 @Composable
-private fun AppNavHost(navController: NavHostController, factory: AppViewModelFactory, container: AppContainer) {
+private fun AppNavHost(
+    navController: NavHostController,
+    factory: AppViewModelFactory,
+    container: AppContainer,
+    isOnline: Boolean
+) {
     NavHost(
         navController = navController,
         startDestination = Routes.Splash
@@ -367,9 +375,13 @@ private fun AppNavHost(navController: NavHostController, factory: AppViewModelFa
         composable(Routes.AddExpense) { entry ->
             val groupId = entry.requireArg(Routes.GROUP_ID)
             val me = container.authRepository.currentUserIdOrNull()
-            val members by loadFromDatabase {
+
+            LaunchedEffect(groupId) {
                 // Best effort: refresh from the server; offline we show the Room copy.
                 container.syncCoordinator?.syncGroup(groupId)
+            }
+
+            val members by loadFromDatabase {
                 container.groupRepository.getMembers(groupId).getOrThrow()
                     .sortedByDescending { it.id == me }
                     .map { ExpenseMember(it.id, if (it.id == me) "You" else it.name) }
@@ -469,7 +481,18 @@ private fun AppNavHost(navController: NavHostController, factory: AppViewModelFa
         composable(Routes.SharedExpenses) { entry ->
             val groupId = entry.requireArg(Routes.GROUP_ID)
             val userId = entry.requireArg(Routes.USER_ID)
-            val shared by loadFromDatabase { AppRepository.getSharedExpenses(groupId, userId) }
+            // Load from cache immediately, sync in background.
+            val sharedFlow = remember(groupId, userId) {
+                container.expenseRepository
+                    .observeSharedExpenses(groupId, userId)
+                    .map { Loaded(data = it) }
+            }
+            val shared by sharedFlow.collectAsStateWithLifecycle(initialValue = Loaded<SharedExpenses>())
+
+            LaunchedEffect(groupId) {
+                container.syncCoordinator?.syncGroupByRemoteId(groupId)
+            }
+
             LoadedScreen(shared) { loaded ->
                 SharedExpensesScreen(
                     shared = loaded,
@@ -479,78 +502,108 @@ private fun AppNavHost(navController: NavHostController, factory: AppViewModelFa
             }
         }
         composable(Routes.Notifications) { entry ->
-            val notifications by loadFromDatabase {
-                container.syncCoordinator?.syncNotifications()
-                container.notificationRepository.getNotifications().getOrThrow()
+            // Load from cache immediately, sync in background.
+            val notificationsFlow = remember(entry) {
+                container.notificationRepository
+                    .observeNotifications()
+                    .map { Loaded(data = it) }
             }
-            val open = rememberRequest()
-            NotificationsScreen(
-                notifications = notifications.data.orEmpty().map { n ->
-                    NotificationItem(n.id, n.title, n.message, n.timeLabel, n.isUnread, n.groupId, n.expenseId)
-                },
-                onNotificationClick = { notification ->
-                    open.run {
-                        if (notification.isUnread) {
-                            container.notificationRepository.markNotificationRead(notification.id).getOrThrow()
-                        }
-                        when {
-                            notification.expenseId != null ->
-                                navController.navigateFrom(entry, Routes.expenseDetails(notification.expenseId))
-                            notification.groupId != null ->
-                                navController.navigateFrom(entry, Routes.groupDetails(notification.groupId))
-                        }
-                    }
-                },
-                onProfileClick = { navController.navigateFrom(entry, Routes.Profile) },
-                message = notifications.error ?: open.message
+            val notifications by notificationsFlow.collectAsStateWithLifecycle(
+                initialValue = Loaded<List<AppNotification>>(emptyList())
             )
+
+            LaunchedEffect(Unit) {
+                container.syncCoordinator?.syncNotifications()
+            }
+
+            val open = rememberRequest()
+            LoadedScreen(notifications) { loaded ->
+                NotificationsScreen(
+                    notifications = loaded.map { n ->
+                        NotificationItem(n.id, n.title, n.message, n.timeLabel, n.isUnread, n.groupId, n.expenseId)
+                    },
+                    onNotificationClick = { notification ->
+                        open.run {
+                            if (notification.isUnread) {
+                                container.notificationRepository.markNotificationRead(notification.id).getOrThrow()
+                            }
+                            when {
+                                notification.expenseId != null ->
+                                    navController.navigateFrom(entry, Routes.expenseDetails(notification.expenseId))
+                                notification.groupId != null ->
+                                    navController.navigateFrom(entry, Routes.groupDetails(notification.groupId))
+                            }
+                        }
+                    },
+                    onProfileClick = { navController.navigateFrom(entry, Routes.Profile) },
+                    message = open.message
+                )
+            }
         }
         composable(Routes.Balances) { entry ->
-            val balances by loadFromDatabase {
-                container.syncCoordinator?.syncBalances()
-                container.balanceRepository.getBalances().getOrThrow()
+            // Load from cache immediately, sync in background.
+            val balancesFlow = remember(entry) {
+                container.balanceRepository
+                    .observeBalances()
+                    .map { Loaded(data = it) }
             }
+            val balances by balancesFlow.collectAsStateWithLifecycle(
+                initialValue = Loaded<BalancesSummary>(BalancesSummary("", emptyList()))
+            )
+
+            LaunchedEffect(Unit) {
+                container.syncCoordinator?.syncBalances()
+            }
+
             val remind = rememberRequest()
-            BalancesScreen(
-                totalBalanceText = balances.data?.totalText.orEmpty(),
-                groups = balances.data?.groups.orEmpty().map { gb ->
-                    FeatureGroupBalances(
-                        gb.groupName,
-                        gb.entries.map { e ->
-                            FeatureBalanceEntry(
-                                e.id,
-                                e.personName,
-                                e.amountText,
-                                when (e.direction) {
-                                    BalanceDirection.OwedToYou -> FeatureBalanceDirection.OwedToYou
-                                    BalanceDirection.YouOwe -> FeatureBalanceDirection.YouOwe
-                                }
-                            )
-                        }
-                    )
-                },
-                onRemind = { balance ->
-                    remind.run {
-                        val dataEntry = BalanceEntry(
-                            balance.id,
-                            balance.personName,
-                            balance.amountText,
-                            when (balance.direction) {
-                                FeatureBalanceDirection.OwedToYou -> BalanceDirection.OwedToYou
-                                FeatureBalanceDirection.YouOwe -> BalanceDirection.YouOwe
+            LoadedScreen(balances) { loaded ->
+                BalancesScreen(
+                    totalBalanceText = loaded.totalText,
+                    groups = loaded.groups.map { gb ->
+                        FeatureGroupBalances(
+                            gb.groupName,
+                            gb.entries.map { e ->
+                                FeatureBalanceEntry(
+                                    e.id,
+                                    e.personName,
+                                    e.amountText,
+                                    when (e.direction) {
+                                        BalanceDirection.OwedToYou -> FeatureBalanceDirection.OwedToYou
+                                        BalanceDirection.YouOwe -> FeatureBalanceDirection.YouOwe
+                                    },
+                                    e.isPending,
+                                    e.isFailed
+                                )
                             }
                         )
-                        container.balanceRepository.sendPaymentReminder(dataEntry)
-                        remind.message = "Reminder sent to ${balance.personName}"
-                    }
-                },
-                onEntryClick = { balance ->
-                    val (groupId, userId) = balance.id.split("/")
-                    navController.navigateFrom(entry, Routes.sharedExpenses(groupId, userId))
-                },
-                onProfileClick = { navController.navigateFrom(entry, Routes.Profile) },
-                message = balances.error ?: remind.message
-            )
+                    },
+                    onRemind = { balance ->
+                        remind.run {
+                            val dataEntry = BalanceEntry(
+                                balance.id,
+                                balance.personName,
+                                balance.amountText,
+                                when (balance.direction) {
+                                    FeatureBalanceDirection.OwedToYou -> BalanceDirection.OwedToYou
+                                    FeatureBalanceDirection.YouOwe -> BalanceDirection.YouOwe
+                                }
+                            )
+                            container.balanceRepository.sendPaymentReminder(dataEntry)
+                            remind.message = if (isOnline) {
+                                "Reminder sent to ${balance.personName}"
+                            } else {
+                                "Reminder queued — sent to ${balance.personName} when you're online"
+                            }
+                        }
+                    },
+                    onEntryClick = { balance ->
+                        val (groupId, userId) = balance.id.split("/")
+                        navController.navigateFrom(entry, Routes.sharedExpenses(groupId, userId))
+                    },
+                    onProfileClick = { navController.navigateFrom(entry, Routes.Profile) },
+                    message = remind.message
+                )
+            }
         }
         composable(Routes.Profile) { entry ->
             val profile by loadFromDatabase { AppRepository.getProfile() }

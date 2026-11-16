@@ -4,6 +4,7 @@ import com.example.myapplication.data.local.ExpenseEntity
 import com.example.myapplication.data.model.Expense
 import com.example.myapplication.feature.expenses.ExpenseDetails
 import com.example.myapplication.feature.expenses.ExpenseEdit
+import com.example.myapplication.feature.expenses.SharedExpenses
 import kotlinx.coroutines.flow.Flow
 
 interface ExpenseRepository {
@@ -16,5 +17,6 @@ interface ExpenseRepository {
     suspend fun getPendingExpenses(): List<ExpenseEntity>
     suspend fun getExpenseDetails(expenseId: String): Result<ExpenseDetails>
     suspend fun getExpenseEdit(expenseId: String): Result<ExpenseEdit>
+    fun observeSharedExpenses(groupId: String, userId: String): Flow<SharedExpenses?>
     suspend fun deleteExpense(expenseId: String): Result<Unit>
 }

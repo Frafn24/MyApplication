@@ -26,6 +26,8 @@ class SyncWorker(appContext: Context, workerParams: WorkerParameters) : Coroutin
             uploadRemovals(database)
             uploadExpenseDeletes(database)
             uploadExpenses(database)
+            uploadPaymentReminders(database)
+            uploadNotificationReads(database)
             refresh(database, touchedGroups)
             Result.success()
         } catch (exception: CancellationException) {
@@ -228,9 +230,64 @@ class SyncWorker(appContext: Context, workerParams: WorkerParameters) : Coroutin
     }
 
     /** Fills Room with what the server now has, so the screens update by themselves. */
+    /** Sends queued payment reminders. */
+    private suspend fun uploadPaymentReminders(database: AppDatabase) {
+        val syncDao = database.syncMetadataDao()
+
+        syncDao.getPending()
+            .filter { it.entityType == "payment_reminder" }
+            .forEach { metadata ->
+                val parts = metadata.entityId.split("|", limit = 3)
+                if (parts.size < 2) {
+                    syncDao.upsert(metadata.copy(state = SyncState.FAILED))
+                    return@forEach
+                }
+
+                val (groupId, userId) = parts
+                val remoteGroupId = syncDao.get("group", groupId)?.remoteId ?: return@forEach
+
+                runCatching { AppRepository.sendPaymentReminder(remoteGroupId, userId) }
+                    .onSuccess {
+                        syncDao.delete("payment_reminder", metadata.entityId)
+                    }
+                    .onFailure {
+                        syncDao.upsert(
+                            metadata.copy(
+                                state = SyncState.FAILED,
+                                serverUpdatedAt = System.currentTimeMillis()
+                            )
+                        )
+                    }
+            }
+    }
+
+    /** Marks notifications as read on the server. */
+    private suspend fun uploadNotificationReads(database: AppDatabase) {
+        val syncDao = database.syncMetadataDao()
+
+        syncDao.getPending()
+            .filter { it.entityType == "notification" }
+            .forEach { metadata ->
+                runCatching { AppRepository.markNotificationRead(metadata.entityId) }
+                    .onSuccess {
+                        syncDao.delete("notification", metadata.entityId)
+                    }
+                    .onFailure {
+                        syncDao.upsert(
+                            metadata.copy(
+                                state = SyncState.FAILED,
+                                serverUpdatedAt = System.currentTimeMillis()
+                            )
+                        )
+                    }
+            }
+    }
+
+    /** Fills Room with what the server now has, so the screens update by themselves. */
     private suspend fun refresh(database: AppDatabase, groupIds: Set<String>) {
         val coordinator = SyncCoordinator(database)
         coordinator.syncGroups()
+        coordinator.syncBalances()
         groupIds.forEach { coordinator.syncGroup(it) }
     }
 }

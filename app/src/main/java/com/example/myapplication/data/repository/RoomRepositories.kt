@@ -1,6 +1,7 @@
 package com.example.myapplication.data.repository
 
 import com.example.myapplication.data.local.AppDatabase
+import com.example.myapplication.data.local.BalanceEntity
 import com.example.myapplication.data.local.ExpenseEntity
 import com.example.myapplication.data.local.GroupEntity
 import com.example.myapplication.data.local.GroupMemberEntity
@@ -29,12 +30,15 @@ import com.example.myapplication.feature.expenses.ExpenseDraft
 import com.example.myapplication.feature.expenses.ExpenseEdit
 import com.example.myapplication.feature.expenses.ExpenseMember
 import com.example.myapplication.feature.expenses.ExpenseSplit
+import com.example.myapplication.feature.expenses.SharedExpenses
 import com.example.myapplication.feature.groups.GroupDetails
 import com.example.myapplication.feature.groups.GroupExpenseItem
 import com.example.myapplication.ui.Format
 import java.math.BigDecimal
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 
 private fun UserEntity.toModel() = User(id, name, email, phone, notificationsEnabled)
@@ -87,10 +91,15 @@ private fun NotificationEntity.toModel() = AppNotification(
     id = id,
     title = title,
     message = message,
-    timeLabel = Format.relativeTime(
-        kotlin.time.Instant.fromEpochMilliseconds(createdAtEpochMs),
-        kotlin.time.Clock.System.now()
-    ),
+    timeLabel = if (createdAtEpochMs > 0) {
+        Format.relativeTime(
+            kotlin.time.Instant.fromEpochMilliseconds(createdAtEpochMs),
+            kotlin.time.Clock.System.now()
+        )
+    } else {
+        // Rows cached before creation times were stored.
+        "Earlier"
+    },
     isUnread = isUnread,
     groupId = groupId,
     expenseId = expenseId
@@ -412,6 +421,68 @@ class RoomExpenseRepository(
 
     override fun observeExpenses(groupId: String) = dao.observeForGroup(groupId)
 
+    /**
+     * The expenses behind one balance entry: everything between the signed-in
+     * user and [userId] in that group, computed from the local cache. The group
+     * id may be the server's (as stored in the balances table) or a local one.
+     */
+    override fun observeSharedExpenses(groupId: String, userId: String): Flow<SharedExpenses?> = flow {
+        // Balances store the server's group id; groups made offline live under a local one.
+        val localGroupId = syncDao.getByRemoteId("group", groupId)?.entityId ?: groupId
+
+        emitAll(
+            combine(
+                groupDao.observeById(localGroupId),
+                groupDao.observeMembers(localGroupId),
+                dao.observeAllForGroup(localGroupId)
+            ) { group, members, expenses ->
+                if (group == null) return@combine null
+
+                val me = currentUserId()
+                val personName = members.firstOrNull { it.userId == userId }?.name ?: "Unknown"
+
+                var totalCents = 0L
+                val items = expenses
+                    .filter { it.syncStatus != SyncStatus.DELETED }
+                    .mapNotNull { expense ->
+                        val people = expense.splitBetween.split("|").filter(String::isNotBlank)
+                        val splits = decodeSplits(expense.splitAmounts).ifEmpty {
+                            equalSplit(expense.amountInCents, people)
+                        }
+
+                        val share = when (expense.paidBy) {
+                            me -> splits[userId]
+                            userId -> splits[me]
+                            else -> null
+                        } ?: return@mapNotNull null
+
+                        totalCents += if (expense.paidBy == me) share else -share
+
+                        GroupExpenseItem(
+                            id = expense.id,
+                            title = expense.title,
+                            amountText = Format.dkk(expense.amountInCents / 100.0),
+                            detailText = if (expense.paidBy == me) {
+                                "You paid · $personName's share ${Format.dkk(share / 100.0)}"
+                            } else {
+                                "$personName paid · your share ${Format.dkk(share / 100.0)}"
+                            }
+                        )
+                    }
+
+                SharedExpenses(
+                    title = "You and $personName · ${group.name}",
+                    totalText = when {
+                        totalCents > 0 -> "$personName owes you ${Format.dkk(totalCents / 100.0)}"
+                        totalCents < 0 -> "You owe $personName ${Format.dkk(-totalCents / 100.0)}"
+                        else -> "You are settled up"
+                    },
+                    expenses = items
+                )
+            }
+        )
+    }
+
     override suspend fun addExpense(
         groupId: String,
         description: String,
@@ -471,26 +542,37 @@ class RoomBalanceRepository(database: AppDatabase, private val syncScheduler: Sy
     private val dao = database.balanceDao()
     private val syncDao = database.syncMetadataDao()
 
-    override suspend fun getBalances(): Result<BalancesSummary> = runCatching {
-        val all = dao.getAll()
-        val groups = all.groupBy { it.groupId }.map { (groupId, entries) ->
+    /** Marks entries that have a reminder waiting to be sent. */
+    private fun List<BalanceEntity>.toSummary(
+        pendingReminders: List<SyncMetadataEntity> = emptyList()
+    ): BalancesSummary {
+        val groups = groupBy { it.groupId }.map { (groupId, entries) ->
             val groupName = entries.first().groupName
             val balanceEntries = entries.map { e ->
+                val matching = pendingReminders.filter { it.entityId.startsWith("${e.groupId}|${e.userId}|") }
                 BalanceEntry(
                     id = "${e.groupId}/${e.userId}",
                     personName = e.personName,
                     amountText = Format.dkk(e.amountCents / 100.0),
-                    direction = if (e.owedToMe) BalanceDirection.OwedToYou else BalanceDirection.YouOwe
+                    direction = if (e.owedToMe) BalanceDirection.OwedToYou else BalanceDirection.YouOwe,
+                    isPending = matching.isNotEmpty(),
+                    isFailed = matching.any { it.state == SyncState.FAILED }
                 )
             }
             GroupBalances(groupName, balanceEntries)
         }
-
-        val totalCents = all.sumOf { if (it.owedToMe) it.amountCents else -it.amountCents }
-        val totalText = Format.signedDkk(totalCents / 100.0)
-
-        BalancesSummary(totalText, groups)
+        val totalCents = sumOf { if (it.owedToMe) it.amountCents else -it.amountCents }
+        return BalancesSummary(Format.signedDkk(totalCents / 100.0), groups)
     }
+
+    override suspend fun getBalances(): Result<BalancesSummary> = runCatching {
+        dao.getAll().toSummary(syncDao.getPending().filter { it.entityType == "payment_reminder" })
+    }
+
+    override fun observeBalances(): Flow<BalancesSummary> = kotlinx.coroutines.flow.combine(
+        dao.observeAll(),
+        syncDao.observePendingByType("payment_reminder")
+    ) { balances, pending -> balances.toSummary(pending) }
 
     override suspend fun sendPaymentReminder(entry: BalanceEntry): Result<Unit> = runCatching {
         val (groupId, userId) = entry.id.split("/")

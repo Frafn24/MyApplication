@@ -41,7 +41,9 @@ data class NotificationItem(
     val isUnread: Boolean = false,
     // What opens when the notification is tapped.
     val groupId: String? = null,
-    val expenseId: String? = null
+    val expenseId: String? = null,
+    // The server's creation time, cached locally so the label stays correct.
+    val createdAtEpochMs: Long = 0
 )
 
 @Composable

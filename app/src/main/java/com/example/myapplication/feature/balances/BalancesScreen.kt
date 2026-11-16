@@ -38,7 +38,14 @@ private val TextSecondary = Color(0xFF374151)
 
 enum class BalanceDirection { OwedToYou, YouOwe }
 
-data class BalanceEntry(val id: String, val personName: String, val amountText: String, val direction: BalanceDirection)
+data class BalanceEntry(
+    val id: String,
+    val personName: String,
+    val amountText: String,
+    val direction: BalanceDirection,
+    val isPending: Boolean = false,
+    val isFailed: Boolean = false
+)
 
 data class GroupBalances(val groupName: String, val entries: List<BalanceEntry>)
 
@@ -154,6 +161,18 @@ private fun BalanceCard(entry: BalanceEntry, onRemind: () -> Unit, onClick: () -
                 fontSize = 8.sp,
                 color = TextSecondary
             )
+            if (entry.isPending) {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = if (entry.isFailed) {
+                        "Reminder not sent yet. Will retry."
+                    } else {
+                        "Reminder queued"
+                    },
+                    fontSize = 8.sp,
+                    color = if (entry.isFailed) Color(0xFFB3261E) else Color(0xFF6B7280)
+                )
+            }
         }
         when (entry.direction) {
             BalanceDirection.OwedToYou -> Text(

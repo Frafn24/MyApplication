@@ -67,7 +67,10 @@ data class BalanceEntry(
     val id: String, // "<groupId>/<userId>"
     val personName: String,
     val amountText: String, // "150 DKK"
-    val direction: BalanceDirection
+    val direction: BalanceDirection,
+    // A reminder for this person is waiting to be sent.
+    val isPending: Boolean = false,
+    val isFailed: Boolean = false
 )
 
 enum class BalanceDirection { OwedToYou, YouOwe }

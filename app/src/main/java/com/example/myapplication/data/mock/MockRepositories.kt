@@ -3,6 +3,7 @@ package com.example.myapplication.data.mock
 import com.example.myapplication.data.local.ExpenseEntity
 import com.example.myapplication.data.model.AppNotification
 import com.example.myapplication.data.model.BalanceEntry
+import com.example.myapplication.data.model.BalancesSummary
 import com.example.myapplication.data.model.Expense
 import com.example.myapplication.data.model.GroupMember
 import com.example.myapplication.data.model.GroupSummary
@@ -18,6 +19,7 @@ import com.example.myapplication.feature.expenses.ExpenseDraft
 import com.example.myapplication.feature.expenses.ExpenseEdit
 import com.example.myapplication.feature.expenses.ExpenseMember
 import com.example.myapplication.feature.expenses.ExpenseSplit
+import com.example.myapplication.feature.expenses.SharedExpenses
 import com.example.myapplication.feature.groups.GroupDetails
 import com.example.myapplication.feature.groups.GroupExpenseItem
 import java.math.BigDecimal
@@ -177,6 +179,15 @@ class MockExpenseRepository : ExpenseRepository {
 
     override fun observeExpenses(groupId: String): Flow<List<ExpenseEntity>> = flowOf(emptyList())
 
+    override fun observeSharedExpenses(groupId: String, userId: String): Flow<SharedExpenses?> =
+        kotlinx.coroutines.flow.flowOf(
+            SharedExpenses(
+                title = "You and Alex · Summer Trip",
+                totalText = "Alex owes you 150 DKK",
+                expenses = emptyList()
+            )
+        )
+
     override suspend fun addExpense(
         groupId: String,
         description: String,
@@ -198,6 +209,8 @@ class MockExpenseRepository : ExpenseRepository {
 
 class MockBalanceRepository : BalanceRepository {
     override suspend fun getBalances() = Result.success(MockData.balancesSummary)
+
+    override fun observeBalances(): Flow<BalancesSummary> = kotlinx.coroutines.flow.flowOf(MockData.balancesSummary)
 
     override suspend fun sendPaymentReminder(entry: BalanceEntry): Result<Unit> = Result.success(Unit)
 }

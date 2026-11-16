@@ -125,6 +125,9 @@ interface BalanceDao {
     @Query("SELECT * FROM balances ORDER BY groupName, personName")
     suspend fun getAll(): List<BalanceEntity>
 
+    @Query("SELECT * FROM balances ORDER BY groupName, personName")
+    fun observeAll(): Flow<List<BalanceEntity>>
+
     @Query("SELECT * FROM balances WHERE groupId = :groupId ORDER BY personName")
     suspend fun getForGroup(groupId: String): List<BalanceEntity>
 
@@ -183,4 +186,7 @@ interface SyncMetadataDao {
         """SELECT * FROM sync_metadata WHERE entityType = 'member_invite' AND state != 'synced' AND substr(entityId, 1, length(:prefix)) = :prefix"""
     )
     fun observePendingInvites(prefix: String): Flow<List<SyncMetadataEntity>>
+
+    @Query("SELECT * FROM sync_metadata WHERE entityType = :entityType AND state != 'synced'")
+    fun observePendingByType(entityType: String): Flow<List<SyncMetadataEntity>>
 }

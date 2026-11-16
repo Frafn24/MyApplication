@@ -348,7 +348,8 @@ object AppRepository {
                     timeText = Format.relativeTime(it.createdAt, now),
                     isUnread = it.readAt == null,
                     groupId = it.groupId,
-                    expenseId = it.expenseId
+                    expenseId = it.expenseId,
+                    createdAtEpochMs = it.createdAt.toEpochMilliseconds()
                 )
             }
     }
@@ -369,6 +370,17 @@ object AppRepository {
             email = user.email.orEmpty(),
             phone = row?.phone.orEmpty(),
             notificationsEnabled = row?.notificationsEnabled ?: true
+        )
+    }
+
+    /** Overload for SyncWorker: send reminder using already-resolved remote group id. */
+    suspend fun sendPaymentReminder(groupId: String, userId: String) {
+        client.postgrest.rpc(
+            "send_payment_reminder",
+            buildJsonObject {
+                put("p_group_id", groupId)
+                put("p_debtor_id", userId)
+            }
         )
     }
 
