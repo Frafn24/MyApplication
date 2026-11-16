@@ -44,20 +44,25 @@ data class ExpenseEntity(
     val syncStatus: String = SyncStatus.SYNCED
 )
 
-@Entity(tableName = "balances")
+@Entity(tableName = "balances", primaryKeys = ["groupId", "userId"])
 data class BalanceEntity(
-    @PrimaryKey val id: String,
     val groupId: String,
+    val userId: String,
     val groupName: String,
-    val description: String,
-    val amountDkk: Int,
-    val isOwedToCurrentUser: Boolean
+    val personName: String,
+    val amountCents: Long,
+    val owedToMe: Boolean
 )
 
 @Entity(tableName = "notifications")
 data class NotificationEntity(
     @PrimaryKey val id: String,
     val title: String,
-    val description: String,
-    val timeLabel: String
+    val message: String,
+    @ColumnInfo(defaultValue = "0")
+    val createdAtEpochMs: Long,
+    @ColumnInfo(defaultValue = "1")
+    val isUnread: Boolean,
+    val groupId: String? = null,
+    val expenseId: String? = null
 )

@@ -1,14 +1,17 @@
 package com.example.myapplication.data.sync
 
 import com.example.myapplication.data.local.AppDatabase
+import com.example.myapplication.data.local.BalanceEntity
 import com.example.myapplication.data.local.ExpenseEntity
 import com.example.myapplication.data.local.GroupEntity
 import com.example.myapplication.data.local.GroupMemberEntity
+import com.example.myapplication.data.local.NotificationEntity
 import com.example.myapplication.data.local.SyncMetadataEntity
 import com.example.myapplication.data.local.SyncState
 import com.example.myapplication.data.local.SyncStatus
 import com.example.myapplication.data.remote.AppRepository
 import com.example.myapplication.data.sync.encodeSplits
+import java.time.Instant
 
 class SyncCoordinator(private val database: AppDatabase) {
     /** Pulls the group list into Room. */
@@ -160,5 +163,49 @@ class SyncCoordinator(private val database: AppDatabase) {
                 syncDao.delete("expense", local.id)
             }
         }
+    }
+
+    /** Pulls balances into Room. */
+    suspend fun syncBalances(): Result<Unit> = runCatching {
+        val (totalText, groupBalances) = AppRepository.getBalances()
+        val balanceDao = database.balanceDao()
+
+        // Flatten GroupBalances into BalanceEntity rows.
+        val entities = groupBalances.flatMap { gb ->
+            gb.entries.map { entry ->
+                BalanceEntity(
+                    groupId = entry.id.substringBefore("/"),
+                    userId = entry.id.substringAfter("/"),
+                    groupName = gb.groupName,
+                    personName = entry.personName,
+                    amountCents = (entry.amountText.replace(" DKK", "").replace(",", "").toDouble() * 100).toLong(),
+                    owedToMe = entry.direction.name == "OwedToYou"
+                )
+            }
+        }
+
+        balanceDao.clear()
+        if (entities.isNotEmpty()) balanceDao.insertAll(entities)
+    }
+
+    /** Pulls notifications into Room. */
+    suspend fun syncNotifications(): Result<Unit> = runCatching {
+        val remote = AppRepository.getNotifications()
+        val notificationDao = database.notificationDao()
+
+        val entities = remote.map { n ->
+            NotificationEntity(
+                id = n.id,
+                title = n.title,
+                message = n.message,
+                createdAtEpochMs = Instant.now().toEpochMilli(), // server doesn't expose epoch ms, approximate
+                isUnread = n.isUnread,
+                groupId = n.groupId,
+                expenseId = n.expenseId
+            )
+        }
+
+        notificationDao.clear()
+        if (entities.isNotEmpty()) notificationDao.insertAll(entities)
     }
 }

@@ -16,7 +16,7 @@ import androidx.room.migration.Migration
         NotificationEntity::class,
         SyncMetadataEntity::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -52,7 +52,8 @@ abstract class AppDatabase : RoomDatabase() {
                 MIGRATION_2_3,
                 MIGRATION_3_4,
                 MIGRATION_4_5,
-                MIGRATION_5_6
+                MIGRATION_5_6,
+                MIGRATION_6_7
             ).build().also { instance = it }
         }
 
@@ -125,6 +126,36 @@ abstract class AppDatabase : RoomDatabase() {
             override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE expenses ADD COLUMN createdById TEXT NOT NULL DEFAULT ''")
                 db.execSQL("ALTER TABLE expenses ADD COLUMN splitAmounts TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
+        /** v6→v7: recreate balances table with composite key; add notification fields. */
+        private val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                // balances: drop and recreate with composite key (groupId + userId)
+                db.execSQL("DROP TABLE IF EXISTS balances")
+                db.execSQL(
+                    """
+                    CREATE TABLE balances (
+                        groupId TEXT NOT NULL,
+                        userId TEXT NOT NULL,
+                        groupName TEXT NOT NULL,
+                        personName TEXT NOT NULL,
+                        amountCents INTEGER NOT NULL,
+                        owedToMe INTEGER NOT NULL,
+                        PRIMARY KEY(groupId, userId)
+                    )
+                    """.trimIndent()
+                )
+
+                // notifications: add createdAtEpochMs, isUnread, groupId, expenseId
+                db.execSQL("ALTER TABLE notifications ADD COLUMN message TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE notifications ADD COLUMN createdAtEpochMs INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE notifications ADD COLUMN isUnread INTEGER NOT NULL DEFAULT 1")
+                db.execSQL("ALTER TABLE notifications ADD COLUMN groupId TEXT")
+                db.execSQL("ALTER TABLE notifications ADD COLUMN expenseId TEXT")
+                // Backfill: description → message, timeLabel parsing skipped (best-effort)
+                db.execSQL("UPDATE notifications SET message = description WHERE message = ''")
             }
         }
     }

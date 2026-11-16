@@ -1,7 +1,6 @@
 package com.example.myapplication.data.repository
 
 import com.example.myapplication.data.local.AppDatabase
-import com.example.myapplication.data.local.BalanceEntity
 import com.example.myapplication.data.local.ExpenseEntity
 import com.example.myapplication.data.local.GroupEntity
 import com.example.myapplication.data.local.GroupMemberEntity
@@ -12,8 +11,11 @@ import com.example.myapplication.data.local.SyncState
 import com.example.myapplication.data.local.SyncStatus
 import com.example.myapplication.data.local.UserEntity
 import com.example.myapplication.data.model.AppNotification
-import com.example.myapplication.data.model.Balance
+import com.example.myapplication.data.model.BalanceDirection
+import com.example.myapplication.data.model.BalanceEntry
+import com.example.myapplication.data.model.BalancesSummary
 import com.example.myapplication.data.model.Expense
+import com.example.myapplication.data.model.GroupBalances
 import com.example.myapplication.data.model.GroupMember
 import com.example.myapplication.data.model.GroupSummary
 import com.example.myapplication.data.model.User
@@ -33,6 +35,7 @@ import com.example.myapplication.ui.Format
 import java.math.BigDecimal
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 
 private fun UserEntity.toModel() = User(id, name, email, phone, notificationsEnabled)
 private fun User.toEntity() = UserEntity(id, name, email, phone, notificationsEnabled)
@@ -80,8 +83,18 @@ private fun List<ExpenseEntity>.netBalanceInCents(me: String?): Long =
 /** Only recompute locally once this phone has changes the server does not know about. */
 private fun List<ExpenseEntity>.hasLocalChanges(): Boolean = any { it.syncStatus != SyncStatus.SYNCED }
 
-private fun BalanceEntity.toModel() = Balance(groupId, groupName, description, amountDkk, isOwedToCurrentUser)
-private fun NotificationEntity.toModel() = AppNotification(id, title, description, timeLabel)
+private fun NotificationEntity.toModel() = AppNotification(
+    id = id,
+    title = title,
+    message = message,
+    timeLabel = Format.relativeTime(
+        kotlin.time.Instant.fromEpochMilliseconds(createdAtEpochMs),
+        kotlin.time.Clock.System.now()
+    ),
+    isUnread = isUnread,
+    groupId = groupId,
+    expenseId = expenseId
+)
 
 class RoomGroupRepository(
     database: AppDatabase,
@@ -453,19 +466,74 @@ class RoomExpenseRepository(
     }
 }
 
-class RoomBalanceRepository(database: AppDatabase) : BalanceRepository {
+class RoomBalanceRepository(database: AppDatabase, private val syncScheduler: SyncScheduler = NoOpSyncScheduler()) :
+    BalanceRepository {
     private val dao = database.balanceDao()
+    private val syncDao = database.syncMetadataDao()
 
-    override suspend fun getBalances(): Result<List<Balance>> = runCatching {
-        dao.getAll().map(BalanceEntity::toModel)
+    override suspend fun getBalances(): Result<BalancesSummary> = runCatching {
+        val all = dao.getAll()
+        val groups = all.groupBy { it.groupId }.map { (groupId, entries) ->
+            val groupName = entries.first().groupName
+            val balanceEntries = entries.map { e ->
+                BalanceEntry(
+                    id = "${e.groupId}/${e.userId}",
+                    personName = e.personName,
+                    amountText = Format.dkk(e.amountCents / 100.0),
+                    direction = if (e.owedToMe) BalanceDirection.OwedToYou else BalanceDirection.YouOwe
+                )
+            }
+            GroupBalances(groupName, balanceEntries)
+        }
+
+        val totalCents = all.sumOf { if (it.owedToMe) it.amountCents else -it.amountCents }
+        val totalText = Format.signedDkk(totalCents / 100.0)
+
+        BalancesSummary(totalText, groups)
+    }
+
+    override suspend fun sendPaymentReminder(entry: BalanceEntry): Result<Unit> = runCatching {
+        val (groupId, userId) = entry.id.split("/")
+        syncDao.upsert(
+            SyncMetadataEntity(
+                entityType = "payment_reminder",
+                entityId = "$groupId|$userId|${System.currentTimeMillis()}",
+                state = SyncState.PENDING_UPLOAD,
+                operation = SyncOperation.CREATE,
+                localUpdatedAt = System.currentTimeMillis()
+            )
+        )
+        syncScheduler.enqueueSync()
     }
 }
 
-class RoomNotificationRepository(database: AppDatabase) : NotificationRepository {
+class RoomNotificationRepository(
+    database: AppDatabase,
+    private val syncScheduler: SyncScheduler = NoOpSyncScheduler()
+) : NotificationRepository {
     private val dao = database.notificationDao()
+    private val syncDao = database.syncMetadataDao()
 
     override suspend fun getNotifications(): Result<List<AppNotification>> = runCatching {
         dao.getAll().map(NotificationEntity::toModel)
+    }
+
+    override fun observeNotifications(): Flow<List<AppNotification>> = dao.observeAll().map {
+        it.map(NotificationEntity::toModel)
+    }
+
+    override suspend fun markNotificationRead(id: String): Result<Unit> = runCatching {
+        dao.markRead(id)
+        syncDao.upsert(
+            SyncMetadataEntity(
+                entityType = "notification",
+                entityId = id,
+                state = SyncState.PENDING_UPLOAD,
+                operation = SyncOperation.UPDATE,
+                localUpdatedAt = System.currentTimeMillis()
+            )
+        )
+        syncScheduler.enqueueSync()
     }
 }
 

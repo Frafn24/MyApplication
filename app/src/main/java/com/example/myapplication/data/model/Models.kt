@@ -44,6 +44,30 @@ data class RemoteExpense(
     val myShareInCents: Long
 )
 
-data class AppNotification(val id: String, val title: String, val description: String, val timeLabel: String)
+data class AppNotification(
+    val id: String,
+    val title: String,
+    val message: String,
+    val timeLabel: String,
+    val isUnread: Boolean = false,
+    val groupId: String? = null,
+    val expenseId: String? = null
+)
 
 data class RemoteExpenseMeta(val createdBy: String, val splits: Map<String, Long>)
+
+/** Aggregated balances for the Balances screen. */
+data class BalancesSummary(val totalText: String, val groups: List<GroupBalances>)
+
+/** One group's balance entries. */
+data class GroupBalances(val groupName: String, val entries: List<BalanceEntry>)
+
+/** One person in a group's balance. */
+data class BalanceEntry(
+    val id: String, // "<groupId>/<userId>"
+    val personName: String,
+    val amountText: String, // "150 DKK"
+    val direction: BalanceDirection
+)
+
+enum class BalanceDirection { OwedToYou, YouOwe }

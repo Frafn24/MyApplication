@@ -51,8 +51,8 @@ class AppContainer(
                     currentUserId = { authRepository.currentUserIdOrNull() },
                     syncScheduler = WorkManagerSyncScheduler(context)
                 ),
-                balanceRepository = RoomBalanceRepository(database),
-                notificationRepository = RoomNotificationRepository(database),
+                balanceRepository = RoomBalanceRepository(database, WorkManagerSyncScheduler(context)),
+                notificationRepository = RoomNotificationRepository(database, WorkManagerSyncScheduler(context)),
                 profileRepository = RoomProfileRepository(database) {
                     authRepository.currentUserIdOrNull()
                 },

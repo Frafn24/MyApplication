@@ -16,7 +16,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -39,6 +38,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.myapplication.data.AppContainer
 import com.example.myapplication.data.AppViewModelFactory
+import com.example.myapplication.data.model.BalanceDirection
+import com.example.myapplication.data.model.BalanceEntry
 import com.example.myapplication.data.model.Expense
 import com.example.myapplication.data.network.NetworkMonitor
 import com.example.myapplication.data.remote.AppRepository
@@ -50,7 +51,10 @@ import com.example.myapplication.feature.auth.LoginScreen
 import com.example.myapplication.feature.auth.LoginViewModel
 import com.example.myapplication.feature.auth.SignUpScreen
 import com.example.myapplication.feature.auth.SignUpViewModel
+import com.example.myapplication.feature.balances.BalanceDirection as FeatureBalanceDirection
+import com.example.myapplication.feature.balances.BalanceEntry as FeatureBalanceEntry
 import com.example.myapplication.feature.balances.BalancesScreen
+import com.example.myapplication.feature.balances.GroupBalances as FeatureGroupBalances
 import com.example.myapplication.feature.expenses.AddExpenseScreen
 import com.example.myapplication.feature.expenses.ExpenseDetailsScreen
 import com.example.myapplication.feature.expenses.ExpenseMember
@@ -62,6 +66,7 @@ import com.example.myapplication.feature.groups.GroupMember
 import com.example.myapplication.feature.groups.GroupsScreen
 import com.example.myapplication.feature.groups.GroupsViewModel
 import com.example.myapplication.feature.groups.ManageMembersScreen
+import com.example.myapplication.feature.notifications.NotificationItem
 import com.example.myapplication.feature.notifications.NotificationsScreen
 import com.example.myapplication.feature.profile.ProfileScreen
 import com.example.myapplication.feature.splash.SplashScreen
@@ -474,20 +479,25 @@ private fun AppNavHost(navController: NavHostController, factory: AppViewModelFa
             }
         }
         composable(Routes.Notifications) { entry ->
-            var reload by remember { mutableIntStateOf(0) }
-            val notifications by loadFromDatabase(reload) { AppRepository.getNotifications() }
+            val notifications by loadFromDatabase {
+                container.syncCoordinator?.syncNotifications()
+                container.notificationRepository.getNotifications().getOrThrow()
+            }
             val open = rememberRequest()
             NotificationsScreen(
-                notifications = notifications.data.orEmpty(),
+                notifications = notifications.data.orEmpty().map { n ->
+                    NotificationItem(n.id, n.title, n.message, n.timeLabel, n.isUnread, n.groupId, n.expenseId)
+                },
                 onNotificationClick = { notification ->
                     open.run {
-                        if (notification.isUnread) AppRepository.markNotificationRead(notification.id)
+                        if (notification.isUnread) {
+                            container.notificationRepository.markNotificationRead(notification.id).getOrThrow()
+                        }
                         when {
                             notification.expenseId != null ->
                                 navController.navigateFrom(entry, Routes.expenseDetails(notification.expenseId))
                             notification.groupId != null ->
                                 navController.navigateFrom(entry, Routes.groupDetails(notification.groupId))
-                            else -> reload++
                         }
                     }
                 },
@@ -496,18 +506,44 @@ private fun AppNavHost(navController: NavHostController, factory: AppViewModelFa
             )
         }
         composable(Routes.Balances) { entry ->
-            val balances by loadFromDatabase { AppRepository.getBalances() }
+            val balances by loadFromDatabase {
+                container.syncCoordinator?.syncBalances()
+                container.balanceRepository.getBalances().getOrThrow()
+            }
             val remind = rememberRequest()
             BalancesScreen(
-                totalBalanceText = balances.data?.first.orEmpty(),
-                groups = balances.data?.second.orEmpty(),
+                totalBalanceText = balances.data?.totalText.orEmpty(),
+                groups = balances.data?.groups.orEmpty().map { gb ->
+                    FeatureGroupBalances(
+                        gb.groupName,
+                        gb.entries.map { e ->
+                            FeatureBalanceEntry(
+                                e.id,
+                                e.personName,
+                                e.amountText,
+                                when (e.direction) {
+                                    BalanceDirection.OwedToYou -> FeatureBalanceDirection.OwedToYou
+                                    BalanceDirection.YouOwe -> FeatureBalanceDirection.YouOwe
+                                }
+                            )
+                        }
+                    )
+                },
                 onRemind = { balance ->
                     remind.run {
-                        AppRepository.sendPaymentReminder(balance)
+                        val dataEntry = BalanceEntry(
+                            balance.id,
+                            balance.personName,
+                            balance.amountText,
+                            when (balance.direction) {
+                                FeatureBalanceDirection.OwedToYou -> BalanceDirection.OwedToYou
+                                FeatureBalanceDirection.YouOwe -> BalanceDirection.YouOwe
+                            }
+                        )
+                        container.balanceRepository.sendPaymentReminder(dataEntry)
                         remind.message = "Reminder sent to ${balance.personName}"
                     }
                 },
-                // "View details". BalanceEntry.id is "<group id>/<user id>".
                 onEntryClick = { balance ->
                     val (groupId, userId) = balance.id.split("/")
                     navController.navigateFrom(entry, Routes.sharedExpenses(groupId, userId))

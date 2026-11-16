@@ -1,6 +1,8 @@
 package com.example.myapplication.data.mock
 
 import com.example.myapplication.data.local.ExpenseEntity
+import com.example.myapplication.data.model.AppNotification
+import com.example.myapplication.data.model.BalanceEntry
 import com.example.myapplication.data.model.Expense
 import com.example.myapplication.data.model.GroupMember
 import com.example.myapplication.data.model.GroupSummary
@@ -195,11 +197,18 @@ class MockExpenseRepository : ExpenseRepository {
 }
 
 class MockBalanceRepository : BalanceRepository {
-    override suspend fun getBalances() = Result.success(MockData.balances)
+    override suspend fun getBalances() = Result.success(MockData.balancesSummary)
+
+    override suspend fun sendPaymentReminder(entry: BalanceEntry): Result<Unit> = Result.success(Unit)
 }
 
 class MockNotificationRepository : NotificationRepository {
     override suspend fun getNotifications() = Result.success(MockData.notifications)
+
+    override fun observeNotifications(): Flow<List<AppNotification>> =
+        kotlinx.coroutines.flow.flowOf(MockData.notifications)
+
+    override suspend fun markNotificationRead(id: String): Result<Unit> = Result.success(Unit)
 }
 
 class MockProfileRepository : ProfileRepository {

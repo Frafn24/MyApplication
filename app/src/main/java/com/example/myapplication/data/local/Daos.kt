@@ -122,20 +122,41 @@ interface ExpenseDao {
 
 @Dao
 interface BalanceDao {
-    @Query("SELECT * FROM balances ORDER BY groupName")
+    @Query("SELECT * FROM balances ORDER BY groupName, personName")
     suspend fun getAll(): List<BalanceEntity>
+
+    @Query("SELECT * FROM balances WHERE groupId = :groupId ORDER BY personName")
+    suspend fun getForGroup(groupId: String): List<BalanceEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(balances: List<BalanceEntity>)
 
     @Query("DELETE FROM balances")
     suspend fun clear()
+
+    @Query("DELETE FROM balances WHERE groupId = :groupId")
+    suspend fun deleteForGroup(groupId: String)
 }
 
 @Dao
 interface NotificationDao {
-    @Query("SELECT * FROM notifications ORDER BY id DESC")
+    @Query("SELECT * FROM notifications ORDER BY createdAtEpochMs DESC")
     suspend fun getAll(): List<NotificationEntity>
+
+    @Query("SELECT * FROM notifications ORDER BY createdAtEpochMs DESC")
+    fun observeAll(): Flow<List<NotificationEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(notifications: List<NotificationEntity>)
+
+    @Query("UPDATE notifications SET isUnread = 0 WHERE id = :id")
+    suspend fun markRead(id: String)
 
     @Query("DELETE FROM notifications")
     suspend fun clear()
+
+    @Query("DELETE FROM notifications WHERE id = :id")
+    suspend fun delete(id: String)
 }
 
 @Dao

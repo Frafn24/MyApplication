@@ -2,7 +2,11 @@ package com.example.myapplication.data.mock
 
 import com.example.myapplication.data.model.AppNotification
 import com.example.myapplication.data.model.Balance
+import com.example.myapplication.data.model.BalanceDirection
+import com.example.myapplication.data.model.BalanceEntry
+import com.example.myapplication.data.model.BalancesSummary
 import com.example.myapplication.data.model.Expense
+import com.example.myapplication.data.model.GroupBalances
 import com.example.myapplication.data.model.GroupMember
 import com.example.myapplication.data.model.GroupSummary
 
@@ -31,9 +35,28 @@ object MockData {
         Balance("2", "Roommates", "You owe John", 100, false)
     )
 
+    val balancesSummary = BalancesSummary(
+        totalText = "+ 350 DKK",
+        groups = listOf(
+            GroupBalances(
+                "Summer Trip",
+                listOf(
+                    BalanceEntry("1/user1", "Alex", "100 DKK", BalanceDirection.OwedToYou),
+                    BalanceEntry("1/user2", "Sarah", "150 DKK", BalanceDirection.OwedToYou)
+                )
+            ),
+            GroupBalances(
+                "Roommates",
+                listOf(
+                    BalanceEntry("2/user3", "John", "100 DKK", BalanceDirection.YouOwe)
+                )
+            )
+        )
+    )
+
     val notifications = listOf(
-        AppNotification("1", "New Expense", "Alex added Dinner - 600 DKK", "10 min ago"),
-        AppNotification("2", "Payment Reminder", "You owe John 100 DKK", "Yesterday"),
-        AppNotification("3", "Group Updated", "Sarah joined Summer Trip", "2 days ago")
+        AppNotification("1", "New Expense", "Alex added Dinner - 600 DKK", "10 min ago", false),
+        AppNotification("2", "Payment Reminder", "You owe John 100 DKK", "Yesterday", true),
+        AppNotification("3", "Group Updated", "Sarah joined Summer Trip", "2 days ago", false)
     )
 }
