@@ -12,6 +12,9 @@ import com.example.myapplication.data.repository.GroupRepository
 import com.example.myapplication.data.repository.NotificationRepository
 import com.example.myapplication.data.repository.ProfileRepository
 import com.example.myapplication.feature.expenses.ExpenseDetails
+import com.example.myapplication.feature.expenses.ExpenseDraft
+import com.example.myapplication.feature.expenses.ExpenseEdit
+import com.example.myapplication.feature.expenses.ExpenseMember
 import com.example.myapplication.feature.expenses.ExpenseSplit
 import com.example.myapplication.feature.groups.GroupDetails
 import com.example.myapplication.feature.groups.GroupExpenseItem
@@ -137,6 +140,24 @@ class MockExpenseRepository : ExpenseRepository {
                 splits = splits,
                 canEdit = true,
                 canDelete = true
+            )
+        )
+    }
+
+    override suspend fun getExpenseEdit(expenseId: String): Result<ExpenseEdit> {
+        val expense = expenses.firstOrNull { it.id == expenseId }
+            ?: return Result.failure(IllegalStateException("Expense not found"))
+
+        return Result.success(
+            ExpenseEdit(
+                groupId = expense.groupId,
+                draft = ExpenseDraft(
+                    title = expense.title,
+                    amount = BigDecimal.valueOf(expense.amountInCents, 2),
+                    paidBy = expense.paidBy,
+                    splitBetween = expense.splitBetween
+                ),
+                members = expense.splitBetween.map { ExpenseMember(it, it) }
             )
         )
     }

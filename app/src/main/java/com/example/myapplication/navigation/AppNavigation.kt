@@ -426,23 +426,33 @@ private fun AppNavHost(navController: NavHostController, factory: AppViewModelFa
         composable(Routes.EditExpense) { entry ->
             val expenseId = entry.requireArg(Routes.EXPENSE_ID)
             val editable by loadFromDatabase {
-                val (groupId, draft) = AppRepository.getExpenseDraft(expenseId)
-                val members = AppRepository.getExpenseMembers(groupId)
-                // People who have left the group can no longer be in the split.
-                val memberIds = members.map { it.id }.toSet()
-                members to draft.copy(splitBetween = draft.splitBetween.filter { it in memberIds })
+                container.expenseRepository.getExpenseEdit(expenseId).getOrThrow()
             }
             val request = rememberRequest()
-            LoadedScreen(editable) { (members, draft) ->
+            LoadedScreen(editable) { loaded ->
                 AddExpenseScreen(
-                    members = members,
-                    initial = draft,
+                    members = loaded.members,
+                    initial = loaded.draft,
                     screenTitle = "Edit Expense",
                     buttonText = "Save Changes",
                     onBack = { navController.popFrom(entry) },
                     onAddExpense = { updated ->
                         request.run {
-                            AppRepository.updateExpense(expenseId, updated)
+                            container.expenseRepository
+                                .updateExpense(
+                                    Expense(
+                                        id = expenseId,
+                                        groupId = loaded.groupId,
+                                        title = updated.title,
+                                        amountInCents = updated.amount
+                                            .movePointRight(2)
+                                            .longValueExact(),
+                                        paidBy = updated.paidBy,
+                                        splitBetween = updated.splitBetween
+                                    )
+                                )
+                                .getOrThrow()
+
                             navController.popFrom(entry)
                         }
                     },

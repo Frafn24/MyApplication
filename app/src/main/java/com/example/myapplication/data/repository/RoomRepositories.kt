@@ -23,6 +23,9 @@ import com.example.myapplication.data.sync.decodeSplits
 import com.example.myapplication.data.sync.encodeSplits
 import com.example.myapplication.data.sync.equalSplit
 import com.example.myapplication.feature.expenses.ExpenseDetails
+import com.example.myapplication.feature.expenses.ExpenseDraft
+import com.example.myapplication.feature.expenses.ExpenseEdit
+import com.example.myapplication.feature.expenses.ExpenseMember
 import com.example.myapplication.feature.expenses.ExpenseSplit
 import com.example.myapplication.feature.groups.GroupDetails
 import com.example.myapplication.feature.groups.GroupExpenseItem
@@ -324,6 +327,31 @@ class RoomExpenseRepository(
             canDelete = expense.paidBy == me,
             isPending = expense.syncStatus != SyncStatus.SYNCED,
             syncFailed = expense.syncStatus == SyncStatus.FAILED
+        )
+    }
+
+    override suspend fun getExpenseEdit(expenseId: String): Result<ExpenseEdit> = runCatching {
+        val expense = dao.getById(expenseId)
+            ?: error("This expense is not available offline yet.")
+
+        val me = currentUserId()
+        val members = groupDao.getMembers(expense.groupId)
+        val memberIds = members.map { it.userId }.toSet()
+
+        ExpenseEdit(
+            groupId = expense.groupId,
+            draft = ExpenseDraft(
+                title = expense.title,
+                amount = BigDecimal.valueOf(expense.amountInCents, 2),
+                paidBy = expense.paidBy,
+                // People who have left the group can no longer be in the split.
+                splitBetween = expense.splitBetween
+                    .split("|")
+                    .filter { it in memberIds }
+            ),
+            members = members
+                .sortedByDescending { it.userId == me }
+                .map { ExpenseMember(it.userId, if (it.userId == me) "You" else it.name) }
         )
     }
 

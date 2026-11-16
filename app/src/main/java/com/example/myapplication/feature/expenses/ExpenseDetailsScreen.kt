@@ -44,6 +44,9 @@ import java.math.RoundingMode
 // Represents one member's share of an expense
 data class ExpenseSplit(val memberName: String, val amount: BigDecimal)
 
+// Everything the Edit Expense screen needs, read from the local cache.
+data class ExpenseEdit(val groupId: String, val draft: ExpenseDraft, val members: List<ExpenseMember>)
+
 // Data displayed on the Expense Details screen
 data class ExpenseDetails(
     val title: String,
