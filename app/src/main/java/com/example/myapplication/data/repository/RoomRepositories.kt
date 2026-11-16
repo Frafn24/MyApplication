@@ -152,7 +152,7 @@ class RoomGroupRepository(
                     )
                 )
             }
-        syncScheduler.enqueueExpenseSync()
+        syncScheduler.enqueueSync()
         group.toModel()
     }
 
@@ -169,7 +169,7 @@ class RoomGroupRepository(
                 localUpdatedAt = System.currentTimeMillis()
             )
         )
-        syncScheduler.enqueueExpenseSync()
+        syncScheduler.enqueueSync()
     }
 
     override suspend fun removeMember(groupId: String, userId: String): Result<Unit> = runCatching {
@@ -183,7 +183,7 @@ class RoomGroupRepository(
                 localUpdatedAt = System.currentTimeMillis()
             )
         )
-        syncScheduler.enqueueExpenseSync()
+        syncScheduler.enqueueSync()
     }
 
     override fun observeMembers(groupId: String): Flow<List<GroupMember>> = combine(
@@ -226,7 +226,7 @@ class RoomExpenseRepository(database: AppDatabase, private val syncScheduler: Sy
                 localUpdatedAt = System.currentTimeMillis()
             )
         )
-        syncScheduler.enqueueExpenseSync()
+        syncScheduler.enqueueSync()
         expense
     }
 
@@ -241,7 +241,7 @@ class RoomExpenseRepository(database: AppDatabase, private val syncScheduler: Sy
                 localUpdatedAt = System.currentTimeMillis()
             )
         )
-        syncScheduler.enqueueExpenseSync()
+        syncScheduler.enqueueSync()
         expense
     }
 
@@ -271,13 +271,13 @@ class RoomExpenseRepository(database: AppDatabase, private val syncScheduler: Sy
                 localUpdatedAt = System.currentTimeMillis()
             )
         )
-        syncScheduler.enqueueExpenseSync()
+        syncScheduler.enqueueSync()
         expense
     }
 
     override suspend fun retryExpense(expenseId: String): Result<Unit> = runCatching {
         dao.updateSyncStatus(expenseId, SyncStatus.PENDING)
-        syncScheduler.enqueueExpenseSync()
+        syncScheduler.enqueueSync()
     }
 
     override suspend fun getPendingExpenses() = dao.getPending()

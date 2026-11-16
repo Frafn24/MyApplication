@@ -10,34 +10,34 @@ import androidx.work.WorkManager
 import java.util.concurrent.TimeUnit
 
 interface SyncScheduler {
-    fun enqueueExpenseSync()
+    fun enqueueSync()
 }
 
 class WorkManagerSyncScheduler(context: Context) : SyncScheduler {
     private val workManager = WorkManager.getInstance(context.applicationContext)
 
-    override fun enqueueExpenseSync() {
+    override fun enqueueSync() {
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)
             .build()
 
-        val request = OneTimeWorkRequestBuilder<SyncExpensesWorker>()
+        val request = OneTimeWorkRequestBuilder<SyncWorker>()
             .setConstraints(constraints)
             .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 10, TimeUnit.SECONDS)
             .build()
 
         workManager.enqueueUniqueWork(
-            EXPENSE_SYNC_WORK,
+            SYNC_WORK,
             ExistingWorkPolicy.KEEP,
             request
         )
     }
 
     private companion object {
-        const val EXPENSE_SYNC_WORK = "expense-sync"
+        const val SYNC_WORK = "app-sync"
     }
 }
 
 class NoOpSyncScheduler : SyncScheduler {
-    override fun enqueueExpenseSync() = Unit
+    override fun enqueueSync() = Unit
 }

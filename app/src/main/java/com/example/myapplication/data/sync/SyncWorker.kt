@@ -10,13 +10,11 @@ import com.example.myapplication.data.local.SyncOperation
 import com.example.myapplication.data.local.SyncState
 import com.example.myapplication.data.local.SyncStatus
 import com.example.myapplication.data.remote.AppRepository
-import com.example.myapplication.data.sync.SyncCoordinator
 import com.example.myapplication.feature.expenses.ExpenseDraft
 import java.math.BigDecimal
 import kotlinx.coroutines.CancellationException
 
-class SyncExpensesWorker(appContext: Context, workerParams: WorkerParameters) :
-    CoroutineWorker(appContext, workerParams) {
+class SyncWorker(appContext: Context, workerParams: WorkerParameters) : CoroutineWorker(appContext, workerParams) {
 
     override suspend fun doWork(): Result {
         val database = AppDatabase.getInstance(applicationContext)

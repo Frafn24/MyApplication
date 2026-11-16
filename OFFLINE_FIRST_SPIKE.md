@@ -26,7 +26,7 @@ Known limitations:
 
 - Room is not active in `MainActivity`; the default app container still uses mock repositories.
 - Supabase synchronization is not implemented.
-- `SyncExpensesWorker` is only a skeleton.
+- `SyncWorker` is only a skeleton.
 - Repository interfaces may change as the database design is finalized.
 - The Room schema and migrations are provisional.
 - Conflict resolution is not implemented.
