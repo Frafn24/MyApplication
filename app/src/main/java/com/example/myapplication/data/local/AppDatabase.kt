@@ -129,7 +129,7 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        /** v6→v7: recreate balances table with composite key; add notification fields. */
+        /** v6→v7: recreate balances and notifications tables with new schemas. */
         private val MIGRATION_6_7 = object : Migration(6, 7) {
             override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
                 // balances: drop and recreate with composite key (groupId + userId)
@@ -148,14 +148,28 @@ abstract class AppDatabase : RoomDatabase() {
                     """.trimIndent()
                 )
 
-                // notifications: add createdAtEpochMs, isUnread, groupId, expenseId
-                db.execSQL("ALTER TABLE notifications ADD COLUMN message TEXT NOT NULL DEFAULT ''")
-                db.execSQL("ALTER TABLE notifications ADD COLUMN createdAtEpochMs INTEGER NOT NULL DEFAULT 0")
-                db.execSQL("ALTER TABLE notifications ADD COLUMN isUnread INTEGER NOT NULL DEFAULT 1")
-                db.execSQL("ALTER TABLE notifications ADD COLUMN groupId TEXT")
-                db.execSQL("ALTER TABLE notifications ADD COLUMN expenseId TEXT")
-                // Backfill: description → message, timeLabel parsing skipped (best-effort)
-                db.execSQL("UPDATE notifications SET message = description WHERE message = ''")
+                // notifications: recreate with new schema (SQLite doesn't support DROP COLUMN)
+                db.execSQL(
+                    """
+                    CREATE TABLE notifications_new (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        title TEXT NOT NULL,
+                        message TEXT NOT NULL DEFAULT '',
+                        createdAtEpochMs INTEGER NOT NULL DEFAULT 0,
+                        isUnread INTEGER NOT NULL DEFAULT 1,
+                        groupId TEXT,
+                        expenseId TEXT
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    INSERT INTO notifications_new (id, title, message, createdAtEpochMs, isUnread, groupId, expenseId)
+                    SELECT id, title, description, 0, 1, NULL, NULL FROM notifications
+                    """.trimIndent()
+                )
+                db.execSQL("DROP TABLE notifications")
+                db.execSQL("ALTER TABLE notifications_new RENAME TO notifications")
             }
         }
     }
