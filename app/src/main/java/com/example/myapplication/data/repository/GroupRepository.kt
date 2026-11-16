@@ -18,4 +18,5 @@ interface GroupRepository {
     suspend fun removeMember(groupId: String, userId: String): Result<Unit>
     fun observeMembers(groupId: String): Flow<List<GroupMember>>
     suspend fun cancelInvite(groupId: String, email: String): Result<Unit>
+    fun observeDetails(groupId: String): Flow<GroupDetails?>
 }

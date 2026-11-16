@@ -11,9 +11,13 @@ import com.example.myapplication.data.repository.ExpenseRepository
 import com.example.myapplication.data.repository.GroupRepository
 import com.example.myapplication.data.repository.NotificationRepository
 import com.example.myapplication.data.repository.ProfileRepository
+import com.example.myapplication.feature.expenses.ExpenseDetails
+import com.example.myapplication.feature.expenses.ExpenseSplit
 import com.example.myapplication.feature.groups.GroupDetails
 import com.example.myapplication.feature.groups.GroupExpenseItem
+import java.math.BigDecimal
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 
 /** Temporary mock repositories used until a real data source is connected. */
@@ -102,6 +106,10 @@ class MockGroupRepository : GroupRepository {
         members[groupId]?.removeAll { it.name == email }
         return Result.success(Unit)
     }
+
+    override fun observeDetails(groupId: String): Flow<GroupDetails?> = flow {
+        emit(getDetails(groupId).getOrNull())
+    }
 }
 
 class MockExpenseRepository : ExpenseRepository {
@@ -109,6 +117,29 @@ class MockExpenseRepository : ExpenseRepository {
 
     override suspend fun getExpenses(groupId: String): Result<List<Expense>> =
         Result.success(expenses.filter { it.groupId == groupId })
+
+    override suspend fun getExpenseDetails(expenseId: String): Result<ExpenseDetails> {
+        val expense = expenses.firstOrNull { it.id == expenseId }
+            ?: return Result.failure(IllegalStateException("Expense not found"))
+
+        val splits = if (expense.splitBetween.isEmpty()) {
+            emptyList()
+        } else {
+            val cents = expense.amountInCents / expense.splitBetween.size
+            expense.splitBetween.map { ExpenseSplit(it, BigDecimal.valueOf(cents, 2)) }
+        }
+
+        return Result.success(
+            ExpenseDetails(
+                title = expense.title,
+                amount = BigDecimal.valueOf(expense.amountInCents, 2),
+                paidBy = expense.paidBy,
+                splits = splits,
+                canEdit = true,
+                canDelete = true
+            )
+        )
+    }
 
     override suspend fun addExpense(expense: Expense): Result<Expense> {
         expenses += expense
@@ -135,6 +166,11 @@ class MockExpenseRepository : ExpenseRepository {
     override suspend fun retryExpense(expenseId: String): Result<Unit> = Result.success(Unit)
 
     override suspend fun getPendingExpenses(): List<ExpenseEntity> = emptyList()
+
+    override suspend fun deleteExpense(expenseId: String): Result<Unit> {
+        expenses.removeAll { it.id == expenseId }
+        return Result.success(Unit)
+    }
 }
 
 class MockBalanceRepository : BalanceRepository {

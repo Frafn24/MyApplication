@@ -2,6 +2,7 @@ package com.example.myapplication.data.repository
 
 import com.example.myapplication.data.local.ExpenseEntity
 import com.example.myapplication.data.model.Expense
+import com.example.myapplication.feature.expenses.ExpenseDetails
 import kotlinx.coroutines.flow.Flow
 
 interface ExpenseRepository {
@@ -12,4 +13,6 @@ interface ExpenseRepository {
     suspend fun addExpense(groupId: String, description: String, amountInCents: Long, payerId: String): Result<Expense>
     suspend fun retryExpense(expenseId: String): Result<Unit>
     suspend fun getPendingExpenses(): List<ExpenseEntity>
+    suspend fun getExpenseDetails(expenseId: String): Result<ExpenseDetails>
+    suspend fun deleteExpense(expenseId: String): Result<Unit>
 }

@@ -66,14 +66,21 @@ interface GroupDao {
 
     @Query("SELECT * FROM group_members WHERE groupId = :groupId ORDER BY name")
     fun observeMembers(groupId: String): Flow<List<GroupMemberEntity>>
+
+    @Query("SELECT * FROM groups WHERE id = :groupId LIMIT 1")
+    fun observeById(groupId: String): Flow<GroupEntity?>
 }
 
 @Dao
 interface ExpenseDao {
-    @Query("SELECT * FROM expenses WHERE groupId = :groupId ORDER BY id DESC")
+    @Query("SELECT * FROM expenses WHERE groupId = :groupId AND syncStatus != 'DELETED' ORDER BY id DESC")
     fun observeForGroup(groupId: String): Flow<List<ExpenseEntity>>
 
-    @Query("SELECT * FROM expenses WHERE groupId = :groupId ORDER BY rowid DESC")
+    /** Includes rows waiting to be deleted, so the balance stays correct while they are queued. */
+    @Query("SELECT * FROM expenses WHERE groupId = :groupId ORDER BY id DESC")
+    fun observeAllForGroup(groupId: String): Flow<List<ExpenseEntity>>
+
+    @Query("SELECT * FROM expenses WHERE groupId = :groupId AND syncStatus != 'DELETED' ORDER BY rowid DESC")
     suspend fun getForGroup(groupId: String): List<ExpenseEntity>
 
     @Query("SELECT * FROM expenses WHERE id = :expenseId LIMIT 1")
@@ -84,9 +91,6 @@ interface ExpenseDao {
 
     @Update
     suspend fun update(expense: ExpenseEntity)
-
-    @Query("SELECT * FROM expenses WHERE syncStatus = 'PENDING'")
-    suspend fun getPending(): List<ExpenseEntity>
 
     @Query("UPDATE expenses SET syncStatus = :status WHERE id = :expenseId")
     suspend fun updateSyncStatus(expenseId: String, status: String)
@@ -102,6 +106,18 @@ interface ExpenseDao {
 
     @Query("DELETE FROM expenses WHERE groupId = :groupId")
     suspend fun deleteForGroup(groupId: String)
+
+    @Query("SELECT * FROM expenses WHERE syncStatus NOT IN ('SYNCED', 'DELETED')")
+    suspend fun getPending(): List<ExpenseEntity>
+
+    @Query("SELECT * FROM expenses WHERE syncStatus = 'DELETED'")
+    suspend fun getDeleted(): List<ExpenseEntity>
+
+    @Query("SELECT * FROM expenses WHERE groupId = :groupId")
+    suspend fun getAllForGroup(groupId: String): List<ExpenseEntity>
+
+    @Query("SELECT * FROM expenses")
+    suspend fun getAll(): List<ExpenseEntity>
 }
 
 @Dao

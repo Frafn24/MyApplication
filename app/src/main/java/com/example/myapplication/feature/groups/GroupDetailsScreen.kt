@@ -38,7 +38,14 @@ private val TextPrimary = Color(0xFF111827)
 private val TextSecondary = Color(0xFF374151)
 
 /** One row in a group's expense list. */
-data class GroupExpenseItem(val id: String, val title: String, val amountText: String, val detailText: String)
+data class GroupExpenseItem(
+    val id: String,
+    val title: String,
+    val amountText: String,
+    val detailText: String,
+    val isPending: Boolean = false,
+    val syncFailed: Boolean = false
+)
 
 data class GroupDetails(
     val id: String,
@@ -122,6 +129,18 @@ private fun ExpenseCard(expense: GroupExpenseItem, onClick: () -> Unit) {
             Text(expense.title, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
             Spacer(Modifier.height(6.dp))
             Text(expense.detailText, fontSize = 10.sp, color = TextSecondary)
+            if (expense.isPending) {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = if (expense.syncFailed) {
+                        "Not saved yet. Will retry."
+                    } else {
+                        "Waiting to sync"
+                    },
+                    fontSize = 10.sp,
+                    color = if (expense.syncFailed) Color(0xFFB3261E) else Color(0xFF6B7280)
+                )
+            }
         }
         Text(expense.amountText, fontSize = 12.sp, color = TextPrimary)
         Spacer(Modifier.width(4.dp))

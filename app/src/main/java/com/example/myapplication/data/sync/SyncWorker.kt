@@ -24,6 +24,7 @@ class SyncWorker(appContext: Context, workerParams: WorkerParameters) : Coroutin
             uploadGroups(database)
             uploadInvites(database)
             uploadRemovals(database)
+            uploadExpenseDeletes(database)
             uploadExpenses(database)
             refresh(database, touchedGroups)
             Result.success()
@@ -125,6 +126,23 @@ class SyncWorker(appContext: Context, workerParams: WorkerParameters) : Coroutin
             }
     }
 
+    private suspend fun uploadExpenseDeletes(database: AppDatabase) {
+        val expenseDao = database.expenseDao()
+        val syncDao = database.syncMetadataDao()
+
+        expenseDao.getDeleted().forEach { expense ->
+            val metadata = syncDao.get("expense", expense.id) ?: return@forEach
+            val remoteId = metadata.remoteId ?: return@forEach
+
+            runCatching { AppRepository.deleteExpense(remoteId) }
+                .onSuccess {
+                    expenseDao.delete(expense)
+                    syncDao.delete("expense", expense.id)
+                }
+            // On failure it stays queued and is retried next run.
+        }
+    }
+
     /** Uploads expenses that were created or edited on this phone. */
     private suspend fun uploadExpenses(database: AppDatabase) {
         val expenseDao = database.expenseDao()
@@ -176,8 +194,10 @@ class SyncWorker(appContext: Context, workerParams: WorkerParameters) : Coroutin
 
                     else -> error("Unsupported expense operation: ${metadata.operation}")
                 }
-
+            }.onSuccess {
                 expenseDao.updateSyncStatus(expense.id, SyncStatus.SYNCED)
+            }.onFailure {
+                expenseDao.updateSyncStatus(expense.id, SyncStatus.FAILED)
             }
             // On failure the expense stays PENDING and is tried again next run.
         }

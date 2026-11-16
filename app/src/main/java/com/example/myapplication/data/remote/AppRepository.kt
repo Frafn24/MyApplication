@@ -2,6 +2,7 @@ package com.example.myapplication.data.remote
 
 import com.example.myapplication.data.model.GroupSummary
 import com.example.myapplication.data.model.RemoteExpense
+import com.example.myapplication.data.model.RemoteExpenseMeta
 import com.example.myapplication.feature.balances.BalanceDirection
 import com.example.myapplication.feature.balances.BalanceEntry
 import com.example.myapplication.feature.balances.GroupBalances
@@ -182,6 +183,18 @@ object AppRepository {
                     myShareInCents = (it.myShare * 100).roundToLong()
                 )
             }
+
+    suspend fun getGroupExpenseMeta(groupId: String): Map<String, RemoteExpenseMeta> = client.from("expenses")
+        .select(Columns.raw("id, created_by, expense_splits(user_id, amount)")) {
+            filter { eq("group_id", groupId) }
+        }
+        .decodeList<ExpenseMetaRow>()
+        .associate { row ->
+            row.id to RemoteExpenseMeta(
+                createdBy = row.createdBy,
+                splits = row.splits.associate { it.userId to (it.amount * 100).roundToLong() }
+            )
+        }
 
     /** Saves the expense split equally between [ExpenseDraft.splitBetween]. Returns its id. */
     suspend fun createExpense(groupId: String, draft: ExpenseDraft): String = client.postgrest.rpc(
@@ -459,6 +472,16 @@ private data class ProfileRow(
     val phone: String? = null,
     @SerialName("notifications_enabled") val notificationsEnabled: Boolean = true
 )
+
+@Serializable
+private data class ExpenseMetaRow(
+    val id: String,
+    @SerialName("created_by") val createdBy: String,
+    @SerialName("expense_splits") val splits: List<ExpenseSplitAmountRow> = emptyList()
+)
+
+@Serializable
+private data class ExpenseSplitAmountRow(@SerialName("user_id") val userId: String, val amount: Double)
 
 /** Turns an error from Supabase (or the network) into a message for the user. */
 fun Throwable.toUserMessage(): String = when (this) {

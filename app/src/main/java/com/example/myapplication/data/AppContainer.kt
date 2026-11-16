@@ -47,8 +47,9 @@ class AppContainer(
                     syncScheduler = WorkManagerSyncScheduler(context)
                 ),
                 expenseRepository = RoomExpenseRepository(
-                    database,
-                    WorkManagerSyncScheduler(context)
+                    database = database,
+                    currentUserId = { authRepository.currentUserIdOrNull() },
+                    syncScheduler = WorkManagerSyncScheduler(context)
                 ),
                 balanceRepository = RoomBalanceRepository(database),
                 notificationRepository = RoomNotificationRepository(database),

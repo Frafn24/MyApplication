@@ -56,6 +56,7 @@ import com.example.myapplication.feature.expenses.ExpenseDetailsScreen
 import com.example.myapplication.feature.expenses.ExpenseMember
 import com.example.myapplication.feature.expenses.SharedExpensesScreen
 import com.example.myapplication.feature.groups.CreateGroupScreen
+import com.example.myapplication.feature.groups.GroupDetails
 import com.example.myapplication.feature.groups.GroupDetailsScreen
 import com.example.myapplication.feature.groups.GroupMember
 import com.example.myapplication.feature.groups.GroupsScreen
@@ -283,11 +284,18 @@ private fun AppNavHost(navController: NavHostController, factory: AppViewModelFa
         }
         composable(Routes.GroupDetails) { entry ->
             val groupId = entry.requireArg(Routes.GROUP_ID)
-            val group by loadFromDatabase {
+            val detailsFlow = remember(groupId) {
+                container.groupRepository
+                    .observeDetails(groupId)
+                    .map { Loaded(data = it) }
+            }
+            val group by detailsFlow.collectAsStateWithLifecycle(initialValue = Loaded<GroupDetails>())
+
+            LaunchedEffect(groupId) {
                 // Best effort: refresh from the server; offline we show the Room copy.
                 container.syncCoordinator?.syncGroup(groupId)
-                container.groupRepository.getDetails(groupId).getOrThrow()
             }
+
             LoadedScreen(group) { loaded ->
                 GroupDetailsScreen(
                     group = loaded,
@@ -395,7 +403,9 @@ private fun AppNavHost(navController: NavHostController, factory: AppViewModelFa
         }
         composable(Routes.ExpenseDetails) { entry ->
             val expenseId = entry.requireArg(Routes.EXPENSE_ID)
-            val expense by loadFromDatabase { AppRepository.getExpenseDetails(expenseId) }
+            val expense by loadFromDatabase {
+                container.expenseRepository.getExpenseDetails(expenseId).getOrThrow()
+            }
             val delete = rememberRequest()
             LoadedScreen(expense) { loaded ->
                 ExpenseDetailsScreen(
@@ -404,8 +414,7 @@ private fun AppNavHost(navController: NavHostController, factory: AppViewModelFa
                     onEditExpense = { navController.navigateFrom(entry, Routes.editExpense(expenseId)) },
                     onDeleteExpense = {
                         delete.run {
-                            AppRepository.deleteExpense(expenseId)
-                            // Back to where the expense was opened from, which reloads without it.
+                            container.expenseRepository.deleteExpense(expenseId).getOrThrow()
                             navController.popFrom(entry)
                         }
                     },

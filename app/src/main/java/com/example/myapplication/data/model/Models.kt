@@ -45,3 +45,5 @@ data class RemoteExpense(
 )
 
 data class AppNotification(val id: String, val title: String, val description: String, val timeLabel: String)
+
+data class RemoteExpenseMeta(val createdBy: String, val splits: Map<String, Long>)

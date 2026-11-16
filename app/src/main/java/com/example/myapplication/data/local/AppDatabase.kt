@@ -16,7 +16,7 @@ import androidx.room.migration.Migration
         NotificationEntity::class,
         SyncMetadataEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -51,7 +51,8 @@ abstract class AppDatabase : RoomDatabase() {
                 MIGRATION_1_2,
                 MIGRATION_2_3,
                 MIGRATION_3_4,
-                MIGRATION_4_5
+                MIGRATION_4_5,
+                MIGRATION_5_6
             ).build().also { instance = it }
         }
 
@@ -117,6 +118,13 @@ abstract class AppDatabase : RoomDatabase() {
             override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE expenses ADD COLUMN paidByName TEXT NOT NULL DEFAULT ''")
                 db.execSQL("ALTER TABLE expenses ADD COLUMN myShareInCents INTEGER")
+            }
+        }
+
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE expenses ADD COLUMN createdById TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE expenses ADD COLUMN splitAmounts TEXT NOT NULL DEFAULT ''")
             }
         }
     }

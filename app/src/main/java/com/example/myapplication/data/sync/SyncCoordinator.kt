@@ -8,6 +8,7 @@ import com.example.myapplication.data.local.SyncMetadataEntity
 import com.example.myapplication.data.local.SyncState
 import com.example.myapplication.data.local.SyncStatus
 import com.example.myapplication.data.remote.AppRepository
+import com.example.myapplication.data.sync.encodeSplits
 
 class SyncCoordinator(private val database: AppDatabase) {
     /** Pulls the group list into Room. */
@@ -15,6 +16,7 @@ class SyncCoordinator(private val database: AppDatabase) {
         val remoteGroups = AppRepository.getGroups()
         val groupDao = database.groupDao()
         val syncDao = database.syncMetadataDao()
+        val expenseDao = database.expenseDao()
 
         remoteGroups.forEach { group ->
             // A group created locally is stored under "group-..." with the server
@@ -52,10 +54,11 @@ class SyncCoordinator(private val database: AppDatabase) {
             val remoteId = metadata.remoteId ?: return@forEach
 
             if (metadata.state == SyncState.SYNCED && remoteId !in remoteIds) {
-                database.expenseDao().getForGroup(local.id).forEach { expense ->
+                // Includes rows waiting to be deleted, so their metadata is cleaned up too.
+                expenseDao.getAllForGroup(local.id).forEach { expense ->
                     syncDao.delete("expense", expense.id)
                 }
-                database.expenseDao().deleteForGroup(local.id)
+                expenseDao.deleteForGroup(local.id)
                 groupDao.deleteMembersForGroup(local.id)
                 groupDao.delete(local.id)
                 syncDao.delete("group", local.id)
@@ -104,6 +107,8 @@ class SyncCoordinator(private val database: AppDatabase) {
             .filterNot { it.userId in keepIds }
             .forEach { groupDao.deleteMember(groupId, it.userId) }
         // Expenses.
+        val expenseMeta = runCatching { AppRepository.getGroupExpenseMeta(remoteGroupId) }
+            .getOrDefault(emptyMap())
         val remoteExpenses = AppRepository.getGroupExpenses(remoteGroupId)
         remoteExpenses.forEach { remote ->
             val metadata = syncDao.getByRemoteId("expense", remote.id)
@@ -112,6 +117,7 @@ class SyncCoordinator(private val database: AppDatabase) {
             if (metadata != null && metadata.state != SyncState.SYNCED) return@forEach
 
             val localId = metadata?.entityId ?: remote.id
+            val splits = expenseMeta[remote.id]?.splits.orEmpty()
 
             expenseDao.insert(
                 ExpenseEntity(
@@ -120,9 +126,11 @@ class SyncCoordinator(private val database: AppDatabase) {
                     title = remote.description,
                     amountInCents = remote.amountInCents,
                     paidBy = remote.paidBy,
-                    splitBetween = "",
+                    splitBetween = splits.keys.joinToString("|"),
                     paidByName = remote.paidByName,
                     myShareInCents = remote.myShareInCents,
+                    createdById = expenseMeta[remote.id]?.createdBy.orEmpty(),
+                    splitAmounts = encodeSplits(splits),
                     syncStatus = SyncStatus.SYNCED
                 )
             )
