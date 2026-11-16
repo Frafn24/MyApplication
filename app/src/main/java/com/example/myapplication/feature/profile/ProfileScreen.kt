@@ -35,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -75,6 +76,10 @@ fun ProfileScreen(
     var email by remember { mutableStateOf(profile.email) }
     var phone by remember { mutableStateOf(profile.phone) }
     var notificationsEnabled by remember { mutableStateOf(profile.notificationsEnabled) }
+
+    // Saving keeps the screen open, so the keyboard must close for the
+    // bottom bar to come back.
+    val keyboard = LocalSoftwareKeyboardController.current
 
     Column(
         modifier = modifier
@@ -158,6 +163,7 @@ fun ProfileScreen(
 
         Button(
             onClick = {
+                keyboard?.hide()
                 onSaveChanges(UserProfile(name, email, phone, notificationsEnabled))
             },
             modifier = Modifier
