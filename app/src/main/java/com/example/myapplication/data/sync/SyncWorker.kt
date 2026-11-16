@@ -1,6 +1,7 @@
 package com.example.myapplication.data.sync
 
 import android.content.Context
+import android.util.Log
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.example.myapplication.data.local.AppDatabase
@@ -18,6 +19,7 @@ import kotlinx.coroutines.CancellationException
 class SyncWorker(appContext: Context, workerParams: WorkerParameters) : CoroutineWorker(appContext, workerParams) {
 
     override suspend fun doWork(): Result {
+        Log.d(TAG, "Sync started")
         val database = AppDatabase.getInstance(applicationContext)
 
         return try {
@@ -30,12 +32,18 @@ class SyncWorker(appContext: Context, workerParams: WorkerParameters) : Coroutin
             uploadPaymentReminders(database)
             uploadNotificationReads(database)
             refresh(database, touchedGroups)
+            Log.d(TAG, "Sync finished")
             Result.success()
         } catch (exception: CancellationException) {
             throw exception
         } catch (exception: Exception) {
+            Log.w(TAG, "Sync failed, will retry", exception)
             Result.retry()
         }
+    }
+
+    private companion object {
+        const val TAG = "SyncWorker"
     }
 
     /** Creates groups that were made offline and stores their server id. */
@@ -251,9 +259,14 @@ class SyncWorker(appContext: Context, workerParams: WorkerParameters) : Coroutin
 
                 runCatching { AppRepository.sendPaymentReminder(remoteGroupId, userId) }
                     .onSuccess {
+                        Log.d(TAG, "Reminder uploaded: group=$remoteGroupId debtor=$userId")
                         syncDao.delete("payment_reminder", metadata.entityId)
                     }
                     .onFailure {
+                        // Note: the server silently skips (no error) when a reminder
+                        // was sent within the last hour, or the receiver has
+                        // notifications turned off in their profile.
+                        Log.w(TAG, "Reminder upload failed: group=$remoteGroupId debtor=$userId", it)
                         syncDao.upsert(
                             metadata.copy(
                                 state = SyncState.FAILED,
