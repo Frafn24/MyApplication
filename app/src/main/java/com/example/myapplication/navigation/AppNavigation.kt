@@ -1,5 +1,6 @@
 package com.example.myapplication.navigation
 
+import android.content.Context
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -89,6 +90,7 @@ fun AppNavigation(container: AppContainer) {
     val factory = remember { AppViewModelFactory(container) }
 
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val networkMonitor = remember(context) { NetworkMonitor(context) }
     val isOnline by networkMonitor.isOnline.collectAsStateWithLifecycle(initialValue = true)
 
@@ -101,14 +103,17 @@ fun AppNavigation(container: AppContainer) {
     // and system notifications appear without opening each screen.
     LaunchedEffect(isOnline) {
         if (isOnline && container.authRepository.currentUserIdOrNull() != null) {
-            val coordinator = container.syncCoordinator ?: return@LaunchedEffect
-            runCatching { coordinator.syncGroups() }
-            runCatching { coordinator.syncBalances() }
-            runCatching {
-                coordinator.syncNotifications().getOrNull()
-                    ?.let { SystemNotifier.postNew(context, it) }
-            }
+            pullNews(container, context)
         }
+    }
+
+    // Coming back to the foreground does the same, so another phone's changes
+    // show up just by picking the phone up again.
+    LifecycleResumeEffect(Unit) {
+        if (isOnline && container.authRepository.currentUserIdOrNull() != null) {
+            scope.launch { pullNews(container, context) }
+        }
+        onPauseOrDispose { }
     }
 
     val currentEntry by navController.currentBackStackEntryAsState()
@@ -173,6 +178,20 @@ private fun NavHostController.openTab(route: String) {
     navigate(route) {
         popUpTo(Routes.Groups)
         launchSingleTop = true
+    }
+}
+
+/**
+ * Best-effort pull of everything that can carry news from other users, so the
+ * Alerts badge and system notifications appear without opening each screen.
+ */
+private suspend fun pullNews(container: AppContainer, context: Context) {
+    val coordinator = container.syncCoordinator ?: return
+    runCatching { coordinator.syncGroups() }
+    runCatching { coordinator.syncBalances() }
+    runCatching {
+        coordinator.syncNotifications().getOrNull()
+            ?.let { SystemNotifier.postNew(context, it) }
     }
 }
 
