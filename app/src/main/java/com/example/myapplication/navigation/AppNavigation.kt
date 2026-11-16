@@ -690,7 +690,9 @@ private fun AppNavHost(
                                 AppRepository.saveProfile(loaded, updated)
                             }
 
-                            navController.popFrom(entry)
+                            // Stay on the screen; the sync status below the button
+                            // shows what happened to the change.
+                            save.message = "Profile saved"
                         }
                     },
                     onSignOut = {
