@@ -245,7 +245,9 @@ class SyncWorker(appContext: Context, workerParams: WorkerParameters) : Coroutin
                 }
 
                 val (groupId, userId) = parts
-                val remoteGroupId = syncDao.get("group", groupId)?.remoteId ?: return@forEach
+                // Balance rows store the server's group id, but groups made offline
+                // live under a local one; resolve by remoteId either way.
+                val remoteGroupId = syncDao.getByRemoteId("group", groupId)?.remoteId ?: groupId
 
                 runCatching { AppRepository.sendPaymentReminder(remoteGroupId, userId) }
                     .onSuccess {
