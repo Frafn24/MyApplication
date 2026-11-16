@@ -386,6 +386,18 @@ object AppRepository {
 
     /** A changed email only takes effect after the user confirms it via the link Supabase sends. */
     suspend fun saveProfile(old: UserProfile, new: UserProfile) {
+        saveProfileFields(new)
+        if (new.email.trim() != old.email) {
+            client.auth.updateUser { email = new.email.trim() }
+        }
+    }
+
+    /**
+     * Saves name, phone and the notifications switch — the fields that can be
+     * queued while offline. Email changes need [saveProfile] while online,
+     * because Supabase sends a confirmation link.
+     */
+    suspend fun saveProfileFields(new: UserProfile) {
         val userId = checkNotNull(client.auth.currentUserOrNull()?.id) { "You are not signed in." }
         // A JSON object, not ProfileRow: the client leaves out values equal to a
         // property's default, so turning notifications back on or clearing the
@@ -397,9 +409,6 @@ object AppRepository {
                 put("notifications_enabled", new.notificationsEnabled)
             }
         ) { filter { eq("id", userId) } }
-        if (new.email.trim() != old.email) {
-            client.auth.updateUser { email = new.email.trim() }
-        }
     }
 }
 

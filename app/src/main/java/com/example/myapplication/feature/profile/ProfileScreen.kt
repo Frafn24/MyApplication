@@ -48,7 +48,15 @@ private val AvatarBackground = Color(0xFFE5E7EB)
 private val FieldBorder = Color(0xFFD1D5DB)
 private val ButtonBackground = Color(0xFFDCE0E6)
 
-data class UserProfile(val name: String, val email: String, val phone: String, val notificationsEnabled: Boolean)
+data class UserProfile(
+    val name: String,
+    val email: String,
+    val phone: String,
+    val notificationsEnabled: Boolean,
+    // A profile change is waiting to be uploaded.
+    val isPending: Boolean = false,
+    val syncFailed: Boolean = false
+)
 
 @Composable
 fun ProfileScreen(
@@ -162,6 +170,20 @@ fun ProfileScreen(
             )
         ) {
             Text("Save Changes", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        }
+
+        if (profile.isPending) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = if (profile.syncFailed) {
+                    "Not saved yet. It will retry when you're online."
+                } else {
+                    "Waiting to sync"
+                },
+                fontSize = 12.sp,
+                color = if (profile.syncFailed) Color(0xFFB3261E) else Color(0xFF6B7280),
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
         }
 
         Spacer(Modifier.height(12.dp))

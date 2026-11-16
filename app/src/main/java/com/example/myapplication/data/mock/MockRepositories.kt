@@ -22,6 +22,7 @@ import com.example.myapplication.feature.expenses.ExpenseSplit
 import com.example.myapplication.feature.expenses.SharedExpenses
 import com.example.myapplication.feature.groups.GroupDetails
 import com.example.myapplication.feature.groups.GroupExpenseItem
+import com.example.myapplication.feature.profile.UserProfile
 import java.math.BigDecimal
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -230,6 +231,10 @@ class MockProfileRepository : ProfileRepository {
     private var profile = User("current-user", "John Doe", "johndoe@test.com", "+45 12 34 56 78")
 
     override suspend fun getProfile(): Result<User> = Result.success(profile)
+
+    override fun observeProfile(): Flow<UserProfile?> = kotlinx.coroutines.flow.flowOf(
+        UserProfile("John Doe", "johndoe@test.com", "+45 12 34 56 78", true)
+    )
 
     override suspend fun updateProfile(user: User): Result<User> {
         profile = user

@@ -11,7 +11,9 @@ import com.example.myapplication.data.local.SyncOperation
 import com.example.myapplication.data.local.SyncState
 import com.example.myapplication.data.local.SyncStatus
 import com.example.myapplication.data.remote.AppRepository
+import com.example.myapplication.data.repository.SupabaseAuthRepository
 import com.example.myapplication.feature.expenses.ExpenseDraft
+import com.example.myapplication.feature.profile.UserProfile
 import com.example.myapplication.notifications.SystemNotifier
 import java.math.BigDecimal
 import kotlinx.coroutines.CancellationException
@@ -29,6 +31,7 @@ class SyncWorker(appContext: Context, workerParams: WorkerParameters) : Coroutin
             uploadRemovals(database)
             uploadExpenseDeletes(database)
             uploadExpenses(database)
+            uploadProfiles(database)
             uploadPaymentReminders(database)
             uploadNotificationReads(database)
             refresh(database, touchedGroups)
@@ -239,6 +242,40 @@ class SyncWorker(appContext: Context, workerParams: WorkerParameters) : Coroutin
     }
 
     /** Fills Room with what the server now has, so the screens update by themselves. */
+    /** Uploads profile changes made on this phone. */
+    private suspend fun uploadProfiles(database: AppDatabase) {
+        val syncDao = database.syncMetadataDao()
+        val userDao = database.userDao()
+
+        syncDao.getPending()
+            .filter { it.entityType == "profile" }
+            .forEach { metadata ->
+                val user = userDao.getById(metadata.entityId) ?: return@forEach
+
+                runCatching {
+                    AppRepository.saveProfileFields(
+                        UserProfile(
+                            name = user.name,
+                            email = user.email,
+                            phone = user.phone,
+                            notificationsEnabled = user.notificationsEnabled
+                        )
+                    )
+                }.onSuccess {
+                    Log.d(TAG, "Profile uploaded for ${metadata.entityId}")
+                    syncDao.delete("profile", metadata.entityId)
+                }.onFailure {
+                    Log.w(TAG, "Profile upload failed for ${metadata.entityId}", it)
+                    syncDao.upsert(
+                        metadata.copy(
+                            state = SyncState.FAILED,
+                            serverUpdatedAt = System.currentTimeMillis()
+                        )
+                    )
+                }
+            }
+    }
+
     /** Sends queued payment reminders. */
     private suspend fun uploadPaymentReminders(database: AppDatabase) {
         val syncDao = database.syncMetadataDao()
@@ -301,9 +338,10 @@ class SyncWorker(appContext: Context, workerParams: WorkerParameters) : Coroutin
 
     /** Fills Room with what the server now has, so the screens update by themselves. */
     private suspend fun refresh(database: AppDatabase, groupIds: Set<String>) {
-        val coordinator = SyncCoordinator(database)
+        val coordinator = SyncCoordinator(database) { SupabaseAuthRepository().currentUserIdOrNull() }
         coordinator.syncGroups()
         coordinator.syncBalances()
+        coordinator.syncProfile()
         coordinator.syncNotifications().getOrNull()?.let {
             SystemNotifier.postNew(applicationContext, it)
         }

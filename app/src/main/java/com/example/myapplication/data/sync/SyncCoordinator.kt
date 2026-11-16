@@ -9,10 +9,11 @@ import com.example.myapplication.data.local.NotificationEntity
 import com.example.myapplication.data.local.SyncMetadataEntity
 import com.example.myapplication.data.local.SyncState
 import com.example.myapplication.data.local.SyncStatus
+import com.example.myapplication.data.local.UserEntity
 import com.example.myapplication.data.remote.AppRepository
 import com.example.myapplication.data.sync.encodeSplits
 
-class SyncCoordinator(private val database: AppDatabase) {
+class SyncCoordinator(private val database: AppDatabase, private val currentUserId: () -> String? = { null }) {
     /** Pulls the group list into Room. */
     suspend fun syncGroups(): Result<Unit> = runCatching {
         val remoteGroups = AppRepository.getGroups()
@@ -191,6 +192,27 @@ class SyncCoordinator(private val database: AppDatabase) {
 
         balanceDao.clear()
         if (entities.isNotEmpty()) balanceDao.insertAll(entities)
+    }
+
+    /** Pulls the signed-in user's profile into Room. */
+    suspend fun syncProfile(): Result<Unit> = runCatching {
+        val id = currentUserId() ?: error("You are not signed in.")
+
+        // A local edit waiting for upload must not be overwritten by the pull.
+        val pendingUpload = database.syncMetadataDao().getPending()
+            .any { it.entityType == "profile" && it.entityId == id }
+        if (pendingUpload) return@runCatching
+
+        val profile = AppRepository.getProfile()
+        database.userDao().insert(
+            UserEntity(
+                id = id,
+                name = profile.name,
+                email = profile.email,
+                phone = profile.phone,
+                notificationsEnabled = profile.notificationsEnabled
+            )
+        )
     }
 
     /** Pulls notifications into Room. Returns the ones that arrived with this pull. */

@@ -53,11 +53,13 @@ class AppContainer(
                 ),
                 balanceRepository = RoomBalanceRepository(database, WorkManagerSyncScheduler(context)),
                 notificationRepository = RoomNotificationRepository(database, WorkManagerSyncScheduler(context)),
-                profileRepository = RoomProfileRepository(database) {
-                    authRepository.currentUserIdOrNull()
-                },
+                profileRepository = RoomProfileRepository(
+                    database = database,
+                    currentUserId = { authRepository.currentUserIdOrNull() },
+                    syncScheduler = WorkManagerSyncScheduler(context)
+                ),
                 localUserData = LocalUserData(database, context.applicationContext),
-                syncCoordinator = SyncCoordinator(database)
+                syncCoordinator = SyncCoordinator(database) { authRepository.currentUserIdOrNull() }
             ).also {
                 // Keeps the cache fresh in the background, so badges and system
                 // notifications appear without opening each screen.

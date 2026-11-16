@@ -44,6 +44,7 @@ import com.example.myapplication.data.model.BalanceDirection
 import com.example.myapplication.data.model.BalanceEntry
 import com.example.myapplication.data.model.BalancesSummary
 import com.example.myapplication.data.model.Expense
+import com.example.myapplication.data.model.User
 import com.example.myapplication.data.network.NetworkMonitor
 import com.example.myapplication.data.remote.AppRepository
 import com.example.myapplication.data.remote.runCatchingCancellable
@@ -73,6 +74,7 @@ import com.example.myapplication.feature.groups.ManageMembersScreen
 import com.example.myapplication.feature.notifications.NotificationItem
 import com.example.myapplication.feature.notifications.NotificationsScreen
 import com.example.myapplication.feature.profile.ProfileScreen
+import com.example.myapplication.feature.profile.UserProfile
 import com.example.myapplication.feature.splash.SplashScreen
 import com.example.myapplication.notifications.SystemNotifier
 import com.example.myapplication.notifications.rememberNotificationPermission
@@ -189,6 +191,7 @@ private suspend fun pullNews(container: AppContainer, context: Context) {
     val coordinator = container.syncCoordinator ?: return
     runCatching { coordinator.syncGroups() }
     runCatching { coordinator.syncBalances() }
+    runCatching { coordinator.syncProfile() }
     runCatching {
         coordinator.syncNotifications().getOrNull()
             ?.let { SystemNotifier.postNew(context, it) }
@@ -646,7 +649,18 @@ private fun AppNavHost(
             }
         }
         composable(Routes.Profile) { entry ->
-            val profile by loadFromDatabase { AppRepository.getProfile() }
+            // Load from cache immediately, sync in background.
+            val profileFlow = remember(entry) {
+                container.profileRepository
+                    .observeProfile()
+                    .map { Loaded(data = it) }
+            }
+            val profile by profileFlow.collectAsStateWithLifecycle(initialValue = Loaded<UserProfile>())
+
+            LaunchedEffect(Unit) {
+                container.syncCoordinator?.syncProfile()
+            }
+
             val save = rememberRequest()
             val notificationPermission = rememberNotificationPermission()
             LoadedScreen(profile) { loaded ->
@@ -654,7 +668,28 @@ private fun AppNavHost(
                     profile = loaded,
                     onSaveChanges = { updated ->
                         save.run {
-                            AppRepository.saveProfile(loaded, updated)
+                            if (updated.email.trim() != loaded.email && !isOnline) {
+                                error("Email can only be changed when you're online.")
+                            }
+
+                            container.profileRepository
+                                .updateProfile(
+                                    User(
+                                        id = "", // replaced with the signed-in id by the repository
+                                        name = updated.name,
+                                        email = updated.email,
+                                        phone = updated.phone,
+                                        notificationsEnabled = updated.notificationsEnabled
+                                    )
+                                )
+                                .getOrThrow()
+
+                            if (updated.email.trim() != loaded.email) {
+                                // Email changes go straight to the server: Supabase sends a
+                                // confirmation link, so they cannot be queued while offline.
+                                AppRepository.saveProfile(loaded, updated)
+                            }
+
                             navController.popFrom(entry)
                         }
                     },

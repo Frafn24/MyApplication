@@ -33,12 +33,14 @@ import com.example.myapplication.feature.expenses.ExpenseSplit
 import com.example.myapplication.feature.expenses.SharedExpenses
 import com.example.myapplication.feature.groups.GroupDetails
 import com.example.myapplication.feature.groups.GroupExpenseItem
+import com.example.myapplication.feature.profile.UserProfile
 import com.example.myapplication.ui.Format
 import java.math.BigDecimal
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 
 private fun UserEntity.toModel() = User(id, name, email, phone, notificationsEnabled)
@@ -621,7 +623,11 @@ class RoomNotificationRepository(
     }
 }
 
-class RoomProfileRepository(database: AppDatabase, private val currentUserId: () -> String?) : ProfileRepository {
+class RoomProfileRepository(
+    database: AppDatabase,
+    private val currentUserId: () -> String?,
+    private val syncScheduler: SyncScheduler = NoOpSyncScheduler()
+) : ProfileRepository {
     private val dao = database.userDao()
     private val syncDao = database.syncMetadataDao()
 
@@ -629,6 +635,25 @@ class RoomProfileRepository(database: AppDatabase, private val currentUserId: ()
         val id = currentUserId() ?: error("You are not signed in.")
         dao.getById(id)?.toModel()
             ?: error("Profile has not been created yet")
+    }
+
+    override fun observeProfile(): Flow<UserProfile?> {
+        val id = currentUserId() ?: return flowOf(null)
+        return combine(
+            dao.observeById(id),
+            syncDao.observePendingByType("profile")
+        ) { user, pending ->
+            user?.let {
+                UserProfile(
+                    name = it.name,
+                    email = it.email,
+                    phone = it.phone,
+                    notificationsEnabled = it.notificationsEnabled,
+                    isPending = pending.isNotEmpty(),
+                    syncFailed = pending.any { metadata -> metadata.state == SyncState.FAILED }
+                )
+            }
+        }
     }
 
     override suspend fun updateProfile(user: User): Result<User> = runCatching {
@@ -644,6 +669,7 @@ class RoomProfileRepository(database: AppDatabase, private val currentUserId: ()
                 localUpdatedAt = System.currentTimeMillis()
             )
         )
+        syncScheduler.enqueueSync()
         stored
     }
 }
