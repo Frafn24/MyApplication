@@ -338,7 +338,10 @@ class SyncWorker(appContext: Context, workerParams: WorkerParameters) : Coroutin
 
     /** Fills Room with what the server now has, so the screens update by themselves. */
     private suspend fun refresh(database: AppDatabase, groupIds: Set<String>) {
-        val coordinator = SyncCoordinator(database) { SupabaseAuthRepository().currentUserIdOrNull() }
+        val coordinator = SyncCoordinator(
+            database = database,
+            currentUserId = { SupabaseAuthRepository().currentUserIdOrNull() }
+        )
         coordinator.syncGroups()
         coordinator.syncBalances()
         coordinator.syncProfile()
