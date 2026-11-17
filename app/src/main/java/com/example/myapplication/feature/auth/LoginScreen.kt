@@ -14,10 +14,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -31,15 +28,17 @@ import com.example.myapplication.ui.components.StatusMessage
 
 @Composable
 fun LoginScreen(
-    onSignIn: (email: String, password: String) -> Unit,
+    uiState: LoginUiState,
+    onEmailChanged: (String) -> Unit,
+    onPasswordChanged: (String) -> Unit,
+    onLogin: () -> Unit,
+    onSignIn: () -> Unit,
     onForgotPassword: () -> Unit,
-    onSignUp: () -> Unit,
-    isLoading: Boolean = false,
-    message: String? = null
+    onSignUp: () -> Unit
 ) {
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-
+    LaunchedEffect(uiState.loginSuccessful) {
+        if (uiState.loginSuccessful) onSignIn()
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -55,8 +54,8 @@ fun LoginScreen(
 
         AuthTextField(
             "Email",
-            email,
-            { email = it },
+            uiState.email,
+            onEmailChanged,
             "Enter email",
             Icons.Default.Email,
             keyboardType = KeyboardType.Email
@@ -64,8 +63,8 @@ fun LoginScreen(
         Spacer(Modifier.height(16.dp))
         AuthTextField(
             "Password",
-            password,
-            { password = it },
+            uiState.password,
+            onPasswordChanged,
             "Enter password",
             Icons.Default.Lock,
             isPassword = true,
@@ -75,10 +74,16 @@ fun LoginScreen(
         TextButton(onClick = onForgotPassword, modifier = Modifier.align(Alignment.End)) {
             Text("Forgot password?", fontSize = 12.sp, color = Color.Black)
         }
-        message?.let { StatusMessage(it) }
+
+        uiState.errorMessage?.let {
+            StatusMessage(it)
+        }
+
         Spacer(Modifier.height(12.dp))
 
-        PrimaryButton("Sign in", { onSignIn(email, password) }, enabled = !isLoading)
+        PrimaryButton("Sign in", {
+            onLogin()
+        }, enabled = !uiState.isLoading)
 
         Spacer(Modifier.weight(1f))
 

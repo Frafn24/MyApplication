@@ -1,5 +1,9 @@
 package com.example.myapplication.feature.auth
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -20,8 +24,17 @@ class AuthScreensTest {
     @Test
     fun loginScreenNavigatesToSignUp() {
         var signUpClicked = false
+
         composeRule.setContent {
-            LoginScreen(onSignIn = { _, _ -> }, onForgotPassword = {}, onSignUp = { signUpClicked = true })
+            LoginScreen(
+                uiState = LoginUiState(),
+                onEmailChanged = {},
+                onPasswordChanged = {},
+                onLogin = {},
+                onSignIn = {},
+                onForgotPassword = {},
+                onSignUp = { signUpClicked = true }
+            )
         }
 
         composeRule.onNodeWithText("Sign up").performClick()
@@ -32,11 +45,25 @@ class AuthScreensTest {
     @Test
     fun forgotPasswordButtonEnabledOnlyWithValidEmail() {
         composeRule.setContent {
-            ForgotPasswordScreen(onBack = {}, onSendEmail = {})
+            var uiState by remember {
+                mutableStateOf(ForgotPasswordUiState())
+            }
+
+            ForgotPasswordScreen(
+                uiState = uiState,
+                onEmailChanged = {
+                    uiState = uiState.copy(email = it)
+                },
+                onBack = {},
+                onSendEmail = {},
+                onEmailSent = {}
+            )
         }
 
         composeRule.onNodeWithText("Send Email").assertIsNotEnabled()
-        composeRule.onNodeWithText("Enter Email").performTextInput("user@example.com")
+        composeRule
+            .onNodeWithText("Enter Email")
+            .performTextInput("user@example.com")
         composeRule.onNodeWithText("Send Email").assertIsEnabled()
     }
 }

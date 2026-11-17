@@ -1,5 +1,8 @@
 package com.example.myapplication.data.remote
 
+import com.example.myapplication.data.model.GroupSummary
+import com.example.myapplication.data.model.RemoteExpense
+import com.example.myapplication.data.model.RemoteExpenseMeta
 import com.example.myapplication.feature.balances.BalanceDirection
 import com.example.myapplication.feature.balances.BalanceEntry
 import com.example.myapplication.feature.balances.GroupBalances
@@ -11,7 +14,6 @@ import com.example.myapplication.feature.expenses.SharedExpenses
 import com.example.myapplication.feature.groups.GroupDetails
 import com.example.myapplication.feature.groups.GroupExpenseItem
 import com.example.myapplication.feature.groups.GroupMember
-import com.example.myapplication.feature.groups.GroupSummary
 import com.example.myapplication.feature.notifications.NotificationItem
 import com.example.myapplication.feature.profile.UserProfile
 import com.example.myapplication.ui.Format
@@ -26,6 +28,7 @@ import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import java.io.IOException
+import kotlin.math.roundToLong
 import kotlin.time.Clock
 import kotlin.time.Instant
 import kotlinx.coroutines.CancellationException
@@ -87,7 +90,8 @@ object AppRepository {
         }
     }
 
-    private fun myUserId(): String = checkNotNull(client.auth.currentUserOrNull()?.id) { "You are not signed in." }
+    fun currentUserIdOrNull(): String? = client.auth.currentUserOrNull()?.id
+    private fun myUserId(): String = checkNotNull(currentUserIdOrNull()) { "You are not signed in." }
 
     // --- Groups ---
 
@@ -165,6 +169,32 @@ object AppRepository {
     suspend fun getExpenseMembers(groupId: String): List<ExpenseMember> = getGroupMembers(groupId)
         .sortedByDescending { it.isMe }
         .map { ExpenseMember(it.id, if (it.isMe) "You" else it.name) }
+
+    suspend fun getGroupExpenses(groupId: String): List<RemoteExpense> =
+        client.postgrest.rpc("get_group_expenses", buildJsonObject { put("p_group_id", groupId) })
+            .decodeList<GroupExpenseRow>()
+            .map {
+                RemoteExpense(
+                    id = it.id,
+                    description = it.description,
+                    amountInCents = (it.amount * 100).roundToLong(),
+                    paidBy = it.paidBy,
+                    paidByName = it.paidByName,
+                    myShareInCents = (it.myShare * 100).roundToLong()
+                )
+            }
+
+    suspend fun getGroupExpenseMeta(groupId: String): Map<String, RemoteExpenseMeta> = client.from("expenses")
+        .select(Columns.raw("id, created_by, expense_splits(user_id, amount)")) {
+            filter { eq("group_id", groupId) }
+        }
+        .decodeList<ExpenseMetaRow>()
+        .associate { row ->
+            row.id to RemoteExpenseMeta(
+                createdBy = row.createdBy,
+                splits = row.splits.associate { it.userId to (it.amount * 100).roundToLong() }
+            )
+        }
 
     /** Saves the expense split equally between [ExpenseDraft.splitBetween]. Returns its id. */
     suspend fun createExpense(groupId: String, draft: ExpenseDraft): String = client.postgrest.rpc(
@@ -318,7 +348,8 @@ object AppRepository {
                     timeText = Format.relativeTime(it.createdAt, now),
                     isUnread = it.readAt == null,
                     groupId = it.groupId,
-                    expenseId = it.expenseId
+                    expenseId = it.expenseId,
+                    createdAtEpochMs = it.createdAt.toEpochMilliseconds()
                 )
             }
     }
@@ -342,8 +373,31 @@ object AppRepository {
         )
     }
 
+    /** Overload for SyncWorker: send reminder using already-resolved remote group id. */
+    suspend fun sendPaymentReminder(groupId: String, userId: String) {
+        client.postgrest.rpc(
+            "send_payment_reminder",
+            buildJsonObject {
+                put("p_group_id", groupId)
+                put("p_debtor_id", userId)
+            }
+        )
+    }
+
     /** A changed email only takes effect after the user confirms it via the link Supabase sends. */
     suspend fun saveProfile(old: UserProfile, new: UserProfile) {
+        saveProfileFields(new)
+        if (new.email.trim() != old.email) {
+            client.auth.updateUser { email = new.email.trim() }
+        }
+    }
+
+    /**
+     * Saves name, phone and the notifications switch — the fields that can be
+     * queued while offline. Email changes need [saveProfile] while online,
+     * because Supabase sends a confirmation link.
+     */
+    suspend fun saveProfileFields(new: UserProfile) {
         val userId = checkNotNull(client.auth.currentUserOrNull()?.id) { "You are not signed in." }
         // A JSON object, not ProfileRow: the client leaves out values equal to a
         // property's default, so turning notifications back on or clearing the
@@ -355,9 +409,6 @@ object AppRepository {
                 put("notifications_enabled", new.notificationsEnabled)
             }
         ) { filter { eq("id", userId) } }
-        if (new.email.trim() != old.email) {
-            client.auth.updateUser { email = new.email.trim() }
-        }
     }
 }
 
@@ -442,6 +493,16 @@ private data class ProfileRow(
     val phone: String? = null,
     @SerialName("notifications_enabled") val notificationsEnabled: Boolean = true
 )
+
+@Serializable
+private data class ExpenseMetaRow(
+    val id: String,
+    @SerialName("created_by") val createdBy: String,
+    @SerialName("expense_splits") val splits: List<ExpenseSplitAmountRow> = emptyList()
+)
+
+@Serializable
+private data class ExpenseSplitAmountRow(@SerialName("user_id") val userId: String, val amount: Double)
 
 /** Turns an error from Supabase (or the network) into a message for the user. */
 fun Throwable.toUserMessage(): String = when (this) {

@@ -15,10 +15,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -33,13 +30,15 @@ import com.example.myapplication.ui.components.StatusMessage
 
 @Composable
 fun ForgotPasswordScreen(
+    uiState: ForgotPasswordUiState,
+    onEmailChanged: (String) -> Unit,
     onBack: () -> Unit,
-    onSendEmail: (email: String) -> Unit,
-    isLoading: Boolean = false,
-    message: String? = null
+    onSendEmail: () -> Unit,
+    onEmailSent: () -> Unit
 ) {
-    var email by remember { mutableStateOf("") }
-
+    LaunchedEffect(uiState.emailSent) {
+        if (uiState.emailSent) onEmailSent()
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -47,8 +46,9 @@ fun ForgotPasswordScreen(
             .padding(horizontal = 24.dp)
     ) {
         Spacer(Modifier.height(48.dp))
+
         IconButton(onClick = onBack) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Tilbage")
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
         }
 
         Column(
@@ -67,19 +67,24 @@ fun ForgotPasswordScreen(
 
             AuthTextField(
                 "Enter Email",
-                email,
-                { email = it },
+                uiState.email,
+                onEmailChanged,
                 "Enter email",
                 Icons.Default.Email,
                 keyboardType = KeyboardType.Email
             )
 
             Spacer(Modifier.height(32.dp))
-            message?.let { StatusMessage(it) }
+
+            uiState.errorMessage?.let {
+                StatusMessage(it)
+            }
+
             PrimaryButton(
                 "Send Email",
-                { onSendEmail(email) },
-                enabled = AuthValidation.isValidEmail(email) && !isLoading
+                onClick = onSendEmail,
+                enabled = AuthValidation.isValidEmail(uiState.email) &&
+                    !uiState.isLoading
             )
         }
         Spacer(Modifier.height(96.dp))

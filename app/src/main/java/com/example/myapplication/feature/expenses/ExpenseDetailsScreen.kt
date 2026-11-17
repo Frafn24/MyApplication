@@ -44,6 +44,9 @@ import java.math.RoundingMode
 // Represents one member's share of an expense
 data class ExpenseSplit(val memberName: String, val amount: BigDecimal)
 
+// Everything the Edit Expense screen needs, read from the local cache.
+data class ExpenseEdit(val groupId: String, val draft: ExpenseDraft, val members: List<ExpenseMember>)
+
 // Data displayed on the Expense Details screen
 data class ExpenseDetails(
     val title: String,
@@ -53,7 +56,9 @@ data class ExpenseDetails(
     // Only the person who added an expense can edit it.
     val canEdit: Boolean = true,
     // Only the person who paid an expense can delete it.
-    val canDelete: Boolean = false
+    val canDelete: Boolean = false,
+    val isPending: Boolean = false,
+    val syncFailed: Boolean = false
 )
 
 @Composable
@@ -74,6 +79,21 @@ fun ExpenseDetailsScreen(
             title = { Text("Delete expense?") },
             text = {
                 Text("\"${expense.title}\" will be removed for everyone in the group, and balances are updated.")
+                if (expense.isPending) {
+                    Text(
+                        text = if (expense.syncFailed) {
+                            "Not saved yet. It will retry when you're online."
+                        } else {
+                            "Waiting to sync"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (expense.syncFailed) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                    )
+                }
             },
             confirmButton = {
                 TextButton(

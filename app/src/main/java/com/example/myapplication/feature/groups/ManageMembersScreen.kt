@@ -21,8 +21,10 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,6 +35,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -41,7 +44,14 @@ import androidx.compose.ui.unit.dp
 import com.example.myapplication.feature.auth.AuthValidation
 import com.example.myapplication.ui.components.StatusMessage
 
-data class GroupMember(val id: String, val name: String, val isAdmin: Boolean = false, val isMe: Boolean = false)
+data class GroupMember(
+    val id: String,
+    val name: String,
+    val isAdmin: Boolean = false,
+    val isMe: Boolean = false,
+    val isPending: Boolean = false,
+    val isFailed: Boolean = false
+)
 
 /**
  * [canManage]: the signed-in user is an admin, so they can add members and
@@ -57,7 +67,8 @@ fun ManageMembersScreen(
     modifier: Modifier = Modifier,
     canManage: Boolean = members.any { it.isMe && it.isAdmin },
     isLoading: Boolean = false,
-    message: String? = null
+    message: String? = null,
+    onCancelInvite: (GroupMember) -> Unit
 ) {
     var newMember by rememberSaveable { mutableStateOf("") }
 
@@ -99,8 +110,10 @@ fun ManageMembersScreen(
             items(members, key = { it.id }) { member ->
                 MemberRow(
                     member = member,
-                    canRemove = canManage && !member.isAdmin && !isLoading,
-                    onRemove = { onRemoveMember(member) }
+                    canRemove = canManage && !member.isAdmin && !member.isPending && !isLoading,
+                    canCancel = canManage && member.isFailed && !isLoading,
+                    onRemove = { onRemoveMember(member) },
+                    onCancel = { onCancelInvite(member) }
                 )
             }
         }
@@ -132,9 +145,15 @@ fun ManageMembersScreen(
 }
 
 @Composable
-private fun MemberRow(member: GroupMember, canRemove: Boolean, onRemove: () -> Unit) {
+private fun MemberRow(
+    member: GroupMember,
+    canRemove: Boolean,
+    canCancel: Boolean,
+    onRemove: () -> Unit,
+    onCancel: () -> Unit
+) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().alpha(if (member.isPending) 0.7f else 1f),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Spacer(
@@ -143,27 +162,53 @@ private fun MemberRow(member: GroupMember, canRemove: Boolean, onRemove: () -> U
                 .background(Color(0xFFDDE1E7))
         )
         Spacer(Modifier.width(16.dp))
-        Text(if (member.isMe) "${member.name} (you)" else member.name)
-        Spacer(Modifier.weight(1f))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(if (member.isMe) "${member.name} (you)" else member.name)
+            if (member.isPending) {
+                Text(
+                    text = if (member.isFailed) {
+                        "Could not be added. Check the email address."
+                    } else {
+                        "Will be added when you're online"
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (member.isFailed) Color(0xFFB3261E) else Color(0xFF6B7280)
+                )
+            }
+        }
 
-        if (member.isAdmin) {
-            Text("Admin")
-        } else if (canRemove) {
-            val interactionSource = remember { MutableInteractionSource() }
-            val isHovered by interactionSource.collectIsHoveredAsState()
+        when {
+            member.isAdmin -> Text("Admin")
 
-            IconButton(
-                onClick = onRemove,
-                modifier = Modifier
-                    .hoverable(interactionSource)
-                    .semantics {
+            member.isPending && !member.isFailed -> CircularProgressIndicator(
+                modifier = Modifier.size(16.dp),
+                strokeWidth = 2.dp
+            )
+
+            member.isFailed && canCancel -> IconButton(
+                onClick = onCancel,
+                modifier = Modifier.semantics {
+                    contentDescription = "Cancel invite ${member.name}"
+                }
+            ) {
+                Icon(Icons.Default.Close, contentDescription = null)
+            }
+
+            canRemove -> {
+                val interactionSource = remember { MutableInteractionSource() }
+                val isHovered by interactionSource.collectIsHoveredAsState()
+
+                IconButton(
+                    onClick = onRemove,
+                    modifier = Modifier.hoverable(interactionSource).semantics {
                         contentDescription = "Remove ${member.name}"
                     }
-            ) {
-                Icon(
-                    imageVector = if (isHovered) Icons.Default.Close else Icons.Default.Person,
-                    contentDescription = null
-                )
+                ) {
+                    Icon(
+                        imageVector = if (isHovered) Icons.Default.Close else Icons.Default.Person,
+                        contentDescription = null
+                    )
+                }
             }
         }
     }
