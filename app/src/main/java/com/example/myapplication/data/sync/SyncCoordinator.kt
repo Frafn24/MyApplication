@@ -11,12 +11,17 @@ import com.example.myapplication.data.local.SyncState
 import com.example.myapplication.data.local.SyncStatus
 import com.example.myapplication.data.local.UserEntity
 import com.example.myapplication.data.remote.AppRepository
+import com.example.myapplication.data.remote.RemoteSource
 import com.example.myapplication.data.sync.encodeSplits
 
-class SyncCoordinator(private val database: AppDatabase, private val currentUserId: () -> String? = { null }) {
+class SyncCoordinator(
+    private val database: AppDatabase,
+    private val currentUserId: () -> String? = { null },
+    private val remote: RemoteSource = AppRepository
+) {
     /** Pulls the group list into Room. */
     suspend fun syncGroups(): Result<Unit> = runCatching {
-        val remoteGroups = AppRepository.getGroups()
+        val remoteGroups = remote.getGroups()
         val groupDao = database.groupDao()
         val syncDao = database.syncMetadataDao()
         val expenseDao = database.expenseDao()
@@ -89,7 +94,7 @@ class SyncCoordinator(private val database: AppDatabase, private val currentUser
             .toSet()
 
         // Members: the server is the source of truth for the cached list.
-        val members = AppRepository.getGroupMembers(remoteGroupId)
+        val members = remote.getGroupMembers(remoteGroupId)
             .filterNot { it.id in pendingRemovals }
 
         members.forEach { member ->
@@ -110,9 +115,9 @@ class SyncCoordinator(private val database: AppDatabase, private val currentUser
             .filterNot { it.userId in keepIds }
             .forEach { groupDao.deleteMember(groupId, it.userId) }
         // Expenses.
-        val expenseMeta = runCatching { AppRepository.getGroupExpenseMeta(remoteGroupId) }
+        val expenseMeta = runCatching { remote.getGroupExpenseMeta(remoteGroupId) }
             .getOrDefault(emptyMap())
-        val remoteExpenses = AppRepository.getGroupExpenses(remoteGroupId)
+        val remoteExpenses = remote.getGroupExpenses(remoteGroupId)
         remoteExpenses.forEach { remote ->
             val metadata = syncDao.getByRemoteId("expense", remote.id)
 
@@ -173,7 +178,7 @@ class SyncCoordinator(private val database: AppDatabase, private val currentUser
 
     /** Pulls balances into Room. */
     suspend fun syncBalances(): Result<Unit> = runCatching {
-        val (totalText, groupBalances) = AppRepository.getBalances()
+        val (totalText, groupBalances) = remote.getBalances()
         val balanceDao = database.balanceDao()
 
         // Flatten GroupBalances into BalanceEntity rows.
@@ -203,7 +208,7 @@ class SyncCoordinator(private val database: AppDatabase, private val currentUser
             .any { it.entityType == "profile" && it.entityId == id }
         if (pendingUpload) return@runCatching
 
-        val profile = AppRepository.getProfile()
+        val profile = remote.getProfile()
         database.userDao().insert(
             UserEntity(
                 id = id,
@@ -217,7 +222,7 @@ class SyncCoordinator(private val database: AppDatabase, private val currentUser
 
     /** Pulls notifications into Room. Returns the ones that arrived with this pull. */
     suspend fun syncNotifications(): Result<List<NotificationEntity>> = runCatching {
-        val remote = AppRepository.getNotifications()
+        val remoteItems = remote.getNotifications()
         val notificationDao = database.notificationDao()
         val syncDao = database.syncMetadataDao()
 
@@ -227,7 +232,7 @@ class SyncCoordinator(private val database: AppDatabase, private val currentUser
             .map { it.entityId }
             .toSet()
 
-        val entities = remote.map { n ->
+        val entities = remoteItems.map { n ->
             NotificationEntity(
                 id = n.id,
                 title = n.title,

@@ -59,7 +59,10 @@ class AppContainer(
                     syncScheduler = WorkManagerSyncScheduler(context)
                 ),
                 localUserData = LocalUserData(database, context.applicationContext),
-                syncCoordinator = SyncCoordinator(database) { authRepository.currentUserIdOrNull() }
+                syncCoordinator = SyncCoordinator(
+                    database = database,
+                    currentUserId = { authRepository.currentUserIdOrNull() }
+                )
             ).also {
                 // Keeps the cache fresh in the background, so badges and system
                 // notifications appear without opening each screen.

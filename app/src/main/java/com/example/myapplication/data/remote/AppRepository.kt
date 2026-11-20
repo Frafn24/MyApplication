@@ -45,7 +45,7 @@ import kotlinx.serialization.json.putJsonArray
  * Results are returned as the screens' own data classes.
  * Row Level Security makes sure each user only gets their own data.
  */
-object AppRepository {
+object AppRepository : RemoteSource {
     private val client get() = SupabaseProvider.client
     private const val NOTIFICATION_LIMIT = 50L
 
@@ -95,7 +95,7 @@ object AppRepository {
 
     // --- Groups ---
 
-    suspend fun getGroups(): List<GroupSummary> = client.postgrest.rpc("get_my_groups")
+    override suspend fun getGroups(): List<GroupSummary> = client.postgrest.rpc("get_my_groups")
         .decodeList<GroupRow>()
         .map { GroupSummary(it.id, it.name, it.memberCount, Format.groupBalance(it.myBalance)) }
 
@@ -137,7 +137,7 @@ object AppRepository {
 
     // --- Members ---
 
-    suspend fun getGroupMembers(groupId: String): List<GroupMember> =
+    override suspend fun getGroupMembers(groupId: String): List<GroupMember> =
         client.postgrest.rpc("get_group_members", buildJsonObject { put("p_group_id", groupId) })
             .decodeList<GroupMemberRow>()
             .map { GroupMember(it.userId, it.name, isAdmin = it.isAdmin, isMe = it.isMe) }
@@ -170,7 +170,7 @@ object AppRepository {
         .sortedByDescending { it.isMe }
         .map { ExpenseMember(it.id, if (it.isMe) "You" else it.name) }
 
-    suspend fun getGroupExpenses(groupId: String): List<RemoteExpense> =
+    override suspend fun getGroupExpenses(groupId: String): List<RemoteExpense> =
         client.postgrest.rpc("get_group_expenses", buildJsonObject { put("p_group_id", groupId) })
             .decodeList<GroupExpenseRow>()
             .map {
@@ -184,7 +184,7 @@ object AppRepository {
                 )
             }
 
-    suspend fun getGroupExpenseMeta(groupId: String): Map<String, RemoteExpenseMeta> = client.from("expenses")
+    override suspend fun getGroupExpenseMeta(groupId: String): Map<String, RemoteExpenseMeta> = client.from("expenses")
         .select(Columns.raw("id, created_by, expense_splits(user_id, amount)")) {
             filter { eq("group_id", groupId) }
         }
@@ -300,7 +300,7 @@ object AppRepository {
     // --- Balances ---
 
     /** The total and the per-group entries for the Balances screen. */
-    suspend fun getBalances(): Pair<String, List<GroupBalances>> {
+    override suspend fun getBalances(): Pair<String, List<GroupBalances>> {
         val rows = client.postgrest.rpc("get_my_balances").decodeList<BalanceRow>()
         val groups = rows.groupBy { it.groupId }.map { (groupId, groupRows) ->
             GroupBalances(
@@ -332,7 +332,7 @@ object AppRepository {
 
     // --- Notifications ---
 
-    suspend fun getNotifications(): List<NotificationItem> {
+    override suspend fun getNotifications(): List<NotificationItem> {
         val now = Clock.System.now()
         return client.from("notifications")
             .select {
@@ -360,7 +360,7 @@ object AppRepository {
 
     // --- Profile ---
 
-    suspend fun getProfile(): UserProfile {
+    override suspend fun getProfile(): UserProfile {
         val user = checkNotNull(client.auth.currentUserOrNull()) { "You are not signed in." }
         val row = client.from("profiles")
             .select { filter { eq("id", user.id) } }
